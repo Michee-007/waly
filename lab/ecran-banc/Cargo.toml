@@ -1,0 +1,29 @@
+[package]
+name = "ecran-banc"
+version = "0.1.0"
+edition = "2021"
+
+# Banc B (2026-09-11) : les 3 gates de l'agent d'ecran AVANT le code produit
+# (plan : docs/PLAN-2026-09-11-B-agent-ecran.md). Crate AUTONOME hors du
+# workspace, comme huisclos-banc. UI Automation = COM sur uiautomationcore.dll
+# (DLL systeme signee Microsoft) via la crate windows — piege SAC n3.
+
+[dependencies]
+windows = { version = "0.61", features = [
+    "Win32_Foundation",
+    "Win32_System_Com",
+    "Win32_System_Ole",
+    "Win32_System_Variant",
+    "Win32_System_LibraryLoader",
+    "Win32_UI_Accessibility",
+    "Win32_UI_HiDpi",
+    "Win32_UI_Input_KeyboardAndMouse",
+    "Win32_UI_WindowsAndMessaging",
+] }
+
+[workspace]
+
+# Piege 3 (SAC) : les release non signes se font bloquer, les debug passent.
+[profile.dev]
+opt-level = 1
+debug = true

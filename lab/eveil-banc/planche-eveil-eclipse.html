@@ -1,0 +1,135 @@
+<title>Éveil — « Souffle » (gravé)</title>
+<style>
+  :root{
+    --fond:#FBFBFA; --encre:#161618; --sourdine:#71747B; --filet:#E4E4E1;
+    --panneau:#FFFFFF; --inte:#FBFBFA; --anneau:#161618; --prot:90,90,96;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --fond:#0D0E10; --encre:#F2F3F6; --sourdine:#8A8D94; --filet:#26282D;
+      --panneau:#131417; --inte:#0D0E10; --anneau:#F2F3F6; --prot:235,238,244;
+    }
+  }
+  :root[data-theme="dark"]{
+    --fond:#0D0E10; --encre:#F2F3F6; --sourdine:#8A8D94; --filet:#26282D;
+    --panneau:#131417; --inte:#0D0E10; --anneau:#F2F3F6; --prot:235,238,244;
+  }
+  :root[data-theme="light"]{
+    --fond:#FBFBFA; --encre:#161618; --sourdine:#71747B; --filet:#E4E4E1;
+    --panneau:#FFFFFF; --inte:#FBFBFA; --anneau:#161618; --prot:90,90,96;
+  }
+  body{
+    background:var(--fond); color:var(--encre);
+    font:15px/1.55 system-ui,-apple-system,"Segoe UI",sans-serif;
+    margin:0; padding:2.5rem 1.5rem 4rem;
+  }
+  main{max-width:640px; margin:0 auto}
+  h1{font-size:1.35rem; font-weight:600; letter-spacing:-.01em; margin:0; text-wrap:balance}
+  .eyebrow{font-size:.72rem; letter-spacing:.14em; text-transform:uppercase; color:var(--sourdine); margin-bottom:.5rem}
+  .contexte{color:var(--sourdine); max-width:62ch; margin:.6rem 0 2rem}
+  .carte{
+    background:var(--panneau); border:1px solid var(--filet);
+    border-radius:10px; padding:1.6rem;
+    display:flex; flex-direction:column; align-items:center; gap:.9rem;
+  }
+  .carte h2{font-size:1rem; font-weight:600; margin:0}
+  .carte h2 small{color:var(--sourdine); font-weight:500}
+  .carte p{font-size:.85rem; color:var(--sourdine); text-align:center; margin:0; max-width:46ch}
+  canvas{width:200px; height:200px}
+  button{
+    font:inherit; font-size:.85rem; font-weight:600; cursor:pointer;
+    color:var(--encre); background:transparent; border:1px solid var(--encre);
+    border-radius:999px; padding:.45rem 1.3rem;
+  }
+  button:hover{background:var(--encre); color:var(--fond)}
+  button:focus-visible{outline:2px solid var(--sourdine); outline-offset:3px}
+  .note{margin-top:2rem; padding-top:1.2rem; border-top:1px solid var(--filet);
+    font-size:.8rem; color:var(--sourdine); max-width:70ch}
+</style>
+<main>
+  <div class="eyebrow">R6b · L'Éveil · verdict gravé le 21/07/2026</div>
+  <h1>« Souffle » — l'état Éveil de l'éclipse</h1>
+  <p class="contexte">
+    Verdict de Michée sur la planche A/B/C : <b>C « Souffle »</b>. Les
+    variantes A « Frisson » et B « Ondée » sont supprimées (méthode : on
+    grave le choix, on retire le reste). Référence d'implémentation du
+    comportement dans l'app.
+  </p>
+  <div class="carte">
+    <canvas id="cvC" width="400" height="400"></canvas>
+    <h2>C <small>« Souffle » — GRAVÉ</small></h2>
+    <p>Quand Waly entend son nom : une inspiration — l'éclipse se recueille
+      un instant, puis s'ouvre d'un coup, halo gonflé, protubérances
+      ravivées. Puis 2 s en « écoute » (état Marée existant) et retombée
+      au repos.</p>
+    <button id="dire">Dire « Waly »</button>
+  </div>
+  <p class="note">
+    Fidélité : moteur « Marée » exact (deux lobes lents, protubérances,
+    halo, anneau 2,2 px), monochrome gravé. Enveloppe du Souffle :
+    contraction −6 % sur 150 ms, éclosion +8 % amortie, halo +0,16,
+    protubérances ×2,2 — extinction ~1 s.
+  </p>
+</main>
+<script>
+(function(){
+  const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+  const proms=[{a:-2.2,ph:1},{a:-0.6,ph:2},{a:0.9,ph:4},{a:2.5,ph:0}];
+  const ETATS={
+    repos: {vit:0.18, lobe:1.6, gain:0.06},
+    ecoute:{vit:0.35, lobe:2.6, gain:0.5},
+  };
+  const cv=document.getElementById('cvC'), ctx=cv.getContext('2d');
+  const S=200, dpr=2, K=S/160; ctx.scale(dpr,dpr);
+  let phase=Math.random()*6, onde=0, lastT=0, niveau=0;
+  let mode='repos', tEveil=-10, now_s=0;
+  function draw(now){
+    requestAnimationFrame(draw);
+    if(now-lastT<33) return;
+    const dt=Math.min(0.1,(now-lastT)/1000)*(reduced?0.35:1); lastT=now; now_s=now/1000;
+    const dep=now_s-tEveil;
+    if(mode==='eveil' && dep>1.2) mode='ecoute';
+    if(mode==='ecoute' && dep>3.2) mode='repos';
+    const p=ETATS[mode==='ecoute'?'ecoute':'repos'];
+    const cible = mode==='eveil' ? 0.85 : (mode==='ecoute' ? 0.25 : 0.04);
+    niveau += (cible-niveau)*0.10;
+    phase += dt*p.vit;
+    onde  += dt*1.2;
+    const cx=S/2, cy=S/2;
+    const inte=css('--inte'), ring=css('--anneau'), pr=css('--prot');
+    const env = mode==='eveil' ? Math.min(dep/0.08,1)*Math.exp(-dep*3.2) : 0;
+    let Rm=S*0.30*(1+0.05*niveau);
+    let halo=0.08+0.10*niveau;
+    const t=Math.max(dep,0);
+    const inspire = mode==='eveil' ? (t<0.15 ? -0.06*(t/0.15) : -0.06*Math.exp(-(t-0.15)*6)+0.08*Math.min((t-0.15)/0.25,1)*Math.exp(-(t-0.4)*2.2)) : 0;
+    Rm *= 1+inspire;
+    halo += 0.16*env;
+    const flare = env;
+    ctx.clearRect(0,0,S,S);
+    const g=ctx.createRadialGradient(cx,cy,Rm*0.8,cx,cy,Rm*1.9);
+    g.addColorStop(0,'rgba('+pr+','+halo.toFixed(3)+')'); g.addColorStop(1,'rgba('+pr+',0)');
+    ctx.fillStyle=g; ctx.beginPath(); ctx.arc(cx,cy,Rm*1.9,0,7); ctx.fill();
+    const lobe=p.lobe*K*(0.7+1.3*niveau);
+    ctx.fillStyle=inte; ctx.beginPath();
+    for(let i=0;i<=72;i++){
+      const a=i/72*Math.PI*2;
+      let r=Rm+lobe*Math.sin(a*2+phase);
+      r+=0.8*K*niveau*Math.sin(a*6-onde*3);
+      const x=cx+Math.cos(a)*r, y=cy+Math.sin(a)*r;
+      if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+    }
+    ctx.closePath(); ctx.fill();
+    ctx.lineWidth=2.2; ctx.strokeStyle=ring; ctx.stroke();
+    for(const q of proms){
+      const fl=0.8+0.2*Math.sin(now/1000+q.ph)+0.5*niveau+1.2*flare;
+      const px=cx+Math.cos(q.a)*Rm, py=cy+Math.sin(q.a)*Rm, r=3.2*fl;
+      const gg=ctx.createRadialGradient(px,py,0,px,py,r);
+      gg.addColorStop(0,'rgba('+pr+',0.9)'); gg.addColorStop(1,'rgba('+pr+',0)');
+      ctx.fillStyle=gg; ctx.beginPath(); ctx.arc(px,py,r,0,7); ctx.fill();
+    }
+  }
+  requestAnimationFrame(draw);
+  document.getElementById('dire').addEventListener('click',()=>{ tEveil=now_s; mode='eveil'; });
+})();
+</script>

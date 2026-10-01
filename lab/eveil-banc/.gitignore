@@ -1,0 +1,6 @@
+# Artefacts de banc : jamais en git (le corpus TTS se regenere avec `gen`).
+corpus/
+feats/
+*.exe
+*.out
+target/

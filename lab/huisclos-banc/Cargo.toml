@@ -1,0 +1,25 @@
+[package]
+name = "huisclos-banc"
+version = "0.1.0"
+edition = "2021"
+
+# Banc R6a (2026-07-20) : les 3 gates du scelle reseau WFP AVANT le code
+# produit (plan : docs/PLAN-2026-07-20-R6a-huis-clos.md). Crate AUTONOME hors
+# du workspace, comme stt1b-banc. Zero exe tiers, zero build-script C++ :
+# fwpuclnt.dll (DLL systeme signee Microsoft) via windows-sys — piege SAC n3.
+
+[dependencies]
+windows-sys = { version = "0.59", features = [
+    "Win32_Foundation",
+    "Win32_NetworkManagement_WindowsFilteringPlatform",
+    "Win32_Security",
+    "Win32_System_Rpc",
+    "Win32_System_Threading",
+] }
+
+[workspace]
+
+# Piege 3 (SAC) : les release non signes se font bloquer, les debug passent.
+[profile.dev]
+opt-level = 1
+debug = true

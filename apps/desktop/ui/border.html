@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<title>Waly — présence écran</title>
+<style>
+  html,body{margin:0;height:100%;width:100%;background:transparent;overflow:hidden;
+    pointer-events:none;user-select:none}
+  /* Aura de présence : Waly regarde ton écran. WebView2 (fenêtre transparente)
+     ne compose que les pixels OPAQUES → tout en alpha 1. Un liseré bi-ton
+     MONOCHROME (gravé), sombre + clair décalés, visible sur N'IMPORTE quel
+     fond. Pas de coins (retour Michée : les brackets qui dépassaient). La vie
+     passe par une pulsation LARGE et douce (transform:scale sur le liseré
+     clair, jamais l'opacité qui disparaîtrait). Click-through. */
+  .dark{position:fixed;inset:0;border:2px solid rgb(14,16,20);border-radius:5px}
+  .light{position:fixed;inset:2px;border:2px solid rgb(246,248,251);border-radius:4px;
+    transform-origin:center;animation:breathe 4.6s ease-in-out infinite}
+  @keyframes breathe{ 0%,100%{border-color:rgba(246,248,251,.55)} 50%{border-color:rgba(246,248,251,1)} }
+</style>
+</head>
+<body>
+  <div class="dark"></div>
+  <div class="light"></div>
+</body>
+</html>

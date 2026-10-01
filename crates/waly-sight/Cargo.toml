@@ -1,0 +1,56 @@
+[package]
+name = "waly-sight"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+tracing.workspace = true
+# Perception légère (YuNet & co) sur la même onnxruntime.dll signée que le
+# reste du stack (load-dynamic — piège 3, jamais de link statique).
+ort.workspace = true
+# Décodage/encodage d'images pour le banc (PNG) — version alignée sur celle
+# que nokhwa utilise en interne (une seule crate image dans l'arbre).
+image = { version = "0.24", default-features = false, features = ["png", "jpeg"] }
+# Hôte des mains d'écran (B, 2026-09-11) : implémente
+# waly_core::mains_ecran::HoteEcran sur UI Automation. Optionnel : waly-core ne
+# dépend jamais de waly-sight (la flèche reste à sens unique).
+waly-core = { path = "../waly-core", optional = true }
+
+[features]
+mains = ["dep:waly-core"]
+
+# E2E des mains d'écran SANS l'app (vrai tour LLM, fenêtre choisie).
+[[example]]
+name = "agent_ecran"
+required-features = ["mains"]
+
+# Capture caméra = Media Foundation, donc Windows seulement : dépendance
+# ciblée pour que `cargo check --workspace` reste vert sur l'hôte WSL.
+[target.'cfg(windows)'.dependencies]
+nokhwa = { version = "0.10", features = ["input-msmf"] }
+# Capture d'écran GDI (R5) : DLL système (gdi32/user32/dwmapi) chargées par
+# l'exe, jamais un exe tiers (piège 3). Version déjà résolue dans l'arbre.
+# UI Automation (B, 2026-09-11) : COM sur uiautomationcore.dll, DLL systeme
+# signee — l'ecran lu en TEXTE et les actions par pattern (banc lab/ecran-banc).
+windows = { version = "0.61", features = [
+    # Apercu PDF dans l'app (pdf.rs) : WinRT systeme Windows.Data.Pdf.
+    "Data_Pdf",
+    "Foundation",
+    "Storage",
+    "Storage_Streams",
+    "Win32_Foundation",
+    "Win32_Graphics_Gdi",
+    "Win32_Graphics_Dwm",
+    "Win32_System_Com",
+    "Win32_System_LibraryLoader",
+    "Win32_System_Ole",
+    "Win32_System_Variant",
+    "Win32_UI_Accessibility",
+    "Win32_UI_HiDpi",
+    "Win32_UI_Input_KeyboardAndMouse",
+    "Win32_UI_WindowsAndMessaging",
+] }

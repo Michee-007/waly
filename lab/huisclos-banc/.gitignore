@@ -1,0 +1,13 @@
+/huisclos-banc.exe
+/waly-seal-svc.exe
+/gate-eleve.*
+/console.*
+/svc-*.log
+/*.out
+/*.pdb
+# Chantier C : copies d'exe (build) + agent temoin (copie de curl) + logs
+/waly-seal-svc-c.exe
+/waly-seal-svc-c-release.exe
+/agent-temoin.exe
+/install-c.log
+/banc-c.log

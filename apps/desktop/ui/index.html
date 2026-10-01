@@ -1,0 +1,1966 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Waly</title>
+<style>
+  /* UI 2026-09-14 (planche v3 validee par Michee) : disposition a la Claude,
+     noms et identite de Waly, fond BLANC. Polices systeme : l'app est scellee,
+     aucune police distante ne peut se charger. */
+  :root{
+    --bg:#FFFFFF;--side:#FAFAFA;--card:#FFFFFF;--ink:#111111;--soft:#5C5C5C;--faint:#A1A1A1;
+    --line:#EBEBEB;--hover:#F4F4F4;--run:#3F9E63;--warn:#B7802A;--danger:#E5484D;
+    --btn:#111111;--btnink:#FFFFFF;--veil:rgba(17,17,17,.22);--pop:0 10px 30px rgba(17,17,17,.10);
+    color-scheme:light;
+  }
+  @media (prefers-color-scheme:dark){ :root:not([data-theme="light"]){
+    --bg:#101010;--side:#0B0B0B;--card:#161616;--ink:#EDEDED;--soft:#A3A3A3;--faint:#606060;
+    --line:#232323;--hover:#1C1C1C;--run:#4CAF6E;--warn:#D39A45;--btn:#EDEDED;--btnink:#101010;
+    --veil:rgba(0,0,0,.5);--pop:0 10px 30px rgba(0,0,0,.55);color-scheme:dark;} }
+  :root[data-theme="dark"]{
+    --bg:#101010;--side:#0B0B0B;--card:#161616;--ink:#EDEDED;--soft:#A3A3A3;--faint:#606060;
+    --line:#232323;--hover:#1C1C1C;--run:#4CAF6E;--warn:#D39A45;--btn:#EDEDED;--btnink:#101010;
+    --veil:rgba(0,0,0,.5);--pop:0 10px 30px rgba(0,0,0,.55);color-scheme:dark;}
+
+  *{box-sizing:border-box}
+  /* L'attribut hidden doit gagner sur les display:flex des composants. */
+  [hidden]{display:none!important}
+  html,body{margin:0;height:100%}
+  body{background:var(--bg);color:var(--ink);font-family:"Segoe UI Variable Text","Segoe UI",system-ui,sans-serif;font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased;overflow:hidden;user-select:none}
+  button{font:inherit;color:inherit}
+  button:focus-visible,[contenteditable]:focus-visible,textarea:focus-visible{outline:2px solid var(--soft);outline-offset:2px}
+  svg.i{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;flex:none}
+  .sm{width:13px!important;height:13px!important}
+  .serif{font-family:Georgia,Cambria,"Times New Roman",serif;font-weight:400}
+  .g{flex:1}
+  .mono{font-family:ui-monospace,"Cascadia Mono",monospace}
+
+  /* titlebar */
+  .titlebar{display:flex;align-items:center;height:36px;padding:0 8px 0 12px;background:var(--side);border-bottom:1px solid var(--line);gap:9px}
+  .titlebar .brand{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600}
+  .titlebar canvas{display:block}
+  .wbtn{width:28px;height:26px;border:0;background:transparent;color:var(--faint);border-radius:6px;font-size:13px;cursor:pointer}
+  .wbtn:hover{background:var(--hover);color:var(--ink)}
+  .wbtn.close:hover{background:#E5484D;color:#fff}
+
+  .shell{display:grid;grid-template-columns:260px 1fr;height:calc(100% - 36px)}
+  .shell.folded{grid-template-columns:0 1fr}
+  .shell.folded .side{display:none}
+
+  /* barre laterale */
+  .side{background:var(--side);border-right:1px solid var(--line);display:flex;flex-direction:column;padding:8px 8px 6px;min-height:0}
+  .sidetop{display:flex;align-items:center;padding:0 2px 6px}
+  .ib{width:32px;height:32px;display:grid;place-items:center;border-radius:8px;border:0;background:transparent;color:var(--soft);cursor:pointer;flex:none}
+  .ib:hover{background:var(--hover);color:var(--ink)}
+  .ni{display:flex;align-items:center;gap:11px;padding:7px 10px;border-radius:8px;color:var(--soft);font-size:13.5px;cursor:pointer;border:0;background:transparent;text-align:left;width:100%}
+  .ni:hover{background:var(--hover);color:var(--ink)}
+  .ni.on{background:var(--hover);color:var(--ink);font-weight:500}
+  .ni .k{margin-left:auto;font-size:11px;color:var(--faint)}
+  .ni.new{color:var(--ink);font-weight:500}
+  .plusc{width:22px;height:22px;border-radius:50%;background:var(--btn);color:var(--btnink);display:grid;place-items:center;margin-left:-3px}
+  .plusc svg{width:12px;height:12px}
+  .sfield{margin:4px 2px 6px;display:none}
+  .sfield.on{display:block}
+  .sfield input{width:100%;font:inherit;font-size:13px;padding:7px 10px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink);outline:none}
+  .lists{flex:1;min-height:0;overflow:auto;display:flex;flex-direction:column;padding-bottom:6px}
+  .grp{display:flex;align-items:center;gap:4px;padding:14px 6px 4px 4px;font-size:11.5px;color:var(--faint)}
+  .fold{border:0;background:transparent;color:var(--faint);display:flex;align-items:center;gap:4px;padding:3px 6px;border-radius:6px;cursor:pointer;font-size:11.5px}
+  .fold:hover{background:var(--hover);color:var(--ink)}
+  .fold svg{transition:transform .15s}
+  .grp.closed .fold svg{transform:rotate(-90deg)}
+  .grp .c{margin-left:auto;font-size:11px}
+  .gl[hidden]{display:none}
+  .ri{display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:8px;font-size:13px;color:var(--soft);white-space:nowrap;overflow:hidden;cursor:pointer}
+  .ri:hover{background:var(--hover)}
+  .ri.on{background:var(--hover);color:var(--ink)}
+  .ri .t{overflow:hidden;text-overflow:ellipsis}
+  .ri .st{margin-left:auto;font-size:11px;color:var(--faint);flex:none}
+  .noconv{padding:6px 10px;font-size:12px;color:var(--faint)}
+  .dot{width:7px;height:7px;border-radius:50%;flex:none;background:var(--faint)}
+  .dot.travail{background:var(--run);animation:pulse 1.4s ease-in-out infinite}
+  .dot.attente{background:transparent;border:1.5px solid var(--warn)}
+  .dot.echec{background:var(--danger)}
+  @keyframes pulse{0%,100%{opacity:.3}50%{opacity:1}}
+  .me{display:flex;align-items:center;gap:10px;padding:10px 8px 2px;border-top:1px solid var(--line);cursor:pointer}
+  .av{width:30px;height:30px;border-radius:50%;background:var(--btn);color:var(--btnink);display:grid;place-items:center;font-size:12.5px;font-weight:600;flex:none}
+  .me .n{font-size:13px;font-weight:500;line-height:1.2}
+  .me .s{font-size:11.5px;color:var(--soft);display:flex;align-items:center;gap:5px}
+  .me .s i{width:6px;height:6px;border-radius:50%;background:var(--run)}
+  .me .s.brise{color:var(--warn)}
+  .me .s.brise i{background:var(--warn)}
+  .me .gear{margin-left:auto;color:var(--faint);width:28px;height:28px;display:grid;place-items:center;border-radius:7px}
+  .me:hover .gear{color:var(--ink);background:var(--hover)}
+
+  /* principal */
+  .main{position:relative;display:flex;flex-direction:column;min-width:0;min-height:0}
+  .mbar{display:flex;align-items:center;gap:8px;height:50px;padding:0 18px;flex:none}
+  .mbar .title{font-size:13.5px;font-weight:500;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;display:flex;align-items:center;gap:7px}
+  .chip{display:inline-flex;align-items:center;gap:7px;font-size:12px;color:var(--soft);border:1px solid var(--line);border-radius:999px;padding:4px 11px;background:var(--card);white-space:nowrap}
+  .chip[hidden]{display:none}
+  .bt{border:1px solid var(--line);background:var(--card);border-radius:9px;padding:6px 13px;font-size:13px;cursor:pointer;color:var(--ink);display:inline-flex;align-items:center;gap:7px;white-space:nowrap}
+  .bt:hover{background:var(--hover)}
+  .bt:disabled{opacity:.5;cursor:default}
+  .bt.solid{background:var(--btn);color:var(--btnink);border-color:var(--btn)}
+  .bt.small{padding:4px 10px;font-size:12.5px}
+  .bt.danger{color:var(--danger)}
+  .tag{display:inline-flex;align-items:center;gap:4px;font-size:11px;color:var(--soft);background:var(--hover);border-radius:6px;padding:1px 7px;white-space:nowrap;font-weight:400}
+  .soon{display:inline-flex;align-items:center;font-size:11px;color:var(--warn);border:1px solid var(--line);border-radius:6px;padding:0 6px;white-space:nowrap;font-weight:400}
+  .fine{font-size:11.5px;color:var(--faint)}
+
+  .view{flex:1;display:flex;flex-direction:column;min-height:0}
+  .view[hidden]{display:none}
+  .home{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;padding:0 40px 60px;min-height:0}
+  .hello{display:flex;align-items:center;gap:14px}
+  .hello h1{margin:0;font-size:36px;letter-spacing:-.01em}
+  .thread{flex:1;min-height:0;overflow-y:auto;padding:6px 0 14px}
+  .col{max-width:720px;margin:0 auto;display:flex;flex-direction:column;gap:18px;padding:0 24px}
+  .you{align-self:flex-end;max-width:80%;display:flex;flex-direction:column;align-items:flex-end;gap:3px}
+  .you .b{background:var(--hover);border-radius:16px;padding:9px 14px;font-size:14.5px;white-space:pre-wrap;user-select:text}
+  .acts{display:flex;gap:2px;color:var(--faint);opacity:0;transition:opacity .15s}
+  .you:hover .acts,.waly:hover .acts{opacity:1}
+  .acts button{border:0;background:transparent;color:inherit;width:26px;height:26px;border-radius:6px;display:grid;place-items:center;cursor:pointer}
+  .acts button:hover{background:var(--hover);color:var(--ink)}
+  .acts svg{width:14px;height:14px}
+  .waly{display:flex;gap:12px}
+  .waly .mk{flex:none;margin-top:4px;color:var(--ink)}
+  .waly .wb{flex:1;min-width:0;display:flex;flex-direction:column;gap:6px}
+  .waly .body{font-size:14.5px;line-height:1.62;user-select:text;white-space:pre-wrap}
+  .waly.err .body{color:var(--danger)}
+  .body p{margin:0 0 8px}
+  .body p:last-child{margin-bottom:0}
+  .body h2,.body h3,.body h4,.body h5{margin:10px 0 6px;line-height:1.3}
+  .body h2{font-size:17px}.body h3{font-size:15.5px}.body h4,.body h5{font-size:14.5px}
+  .body ul,.body ol{margin:2px 0 8px;padding-left:22px}
+  .body li{margin:2px 0}
+  .body code{font-family:ui-monospace,"Cascadia Mono",monospace;font-size:12.5px;background:var(--hover);border-radius:4px;padding:1px 5px}
+  .body pre{background:var(--hover);border-radius:8px;padding:10px 12px;overflow-x:auto;margin:6px 0 8px}
+  .body pre code{background:transparent;padding:0;white-space:pre}
+  .body.html{white-space:normal}
+  .note{font-size:11.5px;color:var(--faint);font-style:italic}
+  .think{font-size:12.5px;color:var(--soft)}
+  .think summary{cursor:pointer;color:var(--faint);list-style:none;display:inline-flex;align-items:center;gap:6px;user-select:none}
+  .think summary::-webkit-details-marker{display:none}
+  .think summary::before{content:"›";display:inline-block;transition:transform .15s}
+  .think[open] summary::before{transform:rotate(90deg)}
+  .think summary:hover{color:var(--ink)}
+  .think .tt{white-space:pre-wrap;border-left:2px solid var(--line);padding:2px 0 2px 12px;margin-top:6px;line-height:1.55;user-select:text}
+  .dots::after{content:"";animation:dots 1.2s steps(4,end) infinite}
+  @keyframes dots{0%{content:""}25%{content:"·"}50%{content:"··"}75%{content:"···"}}
+  .step{display:flex;align-items:center;gap:9px;font-size:12.5px;color:var(--soft);padding-left:32px;user-select:text}
+  .step .sb{width:16px;height:16px;border-radius:50%;background:var(--hover);color:var(--run);display:grid;place-items:center;flex:none}
+  .step .sn{color:var(--ink)}
+  .step .si{color:var(--faint);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+  .made{display:flex;align-items:center;gap:12px;border:1px solid var(--line);border-radius:14px;padding:10px 12px;background:var(--card);max-width:480px;margin-left:32px;cursor:pointer}
+  .made:hover{background:var(--hover)}
+  .made .fi{width:32px;height:40px;border:1px solid var(--line);border-radius:5px;display:grid;place-items:end center;font-size:8.5px;font-weight:600;color:var(--soft);padding-bottom:4px;flex:none;background:var(--bg)}
+  .made .n{font-size:13.5px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .made .p{font-size:11.5px;color:var(--faint);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .made .o{margin-left:auto;font-size:12px;color:var(--soft);white-space:nowrap}
+
+  /* approbations (missions) */
+  .waits{display:flex;flex-direction:column;gap:8px;width:100%;max-width:720px}
+  .appro{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:12px;border:1px solid var(--line);border-radius:14px;padding:12px 14px;background:var(--card)}
+  .appro .ai{width:34px;height:34px;border-radius:9px;background:var(--hover);display:grid;place-items:center}
+  .appro .al{font-size:11.5px;color:var(--faint)}
+  .appro .aa{font-size:14px;line-height:1.35;overflow-wrap:anywhere}
+  .appro .aw{font-size:11.5px;color:var(--soft);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:420px}
+  .appro .ab{display:flex;gap:6px}
+
+  /* saisie */
+  .dock{padding:0 24px 12px;display:flex;flex-direction:column;align-items:center;gap:8px;flex:none}
+  .compwrap{width:100%;max-width:720px;display:flex;flex-direction:column;align-items:center;gap:6px}
+  .comp{position:relative;width:100%;background:var(--card);border:1px solid var(--line);border-radius:18px;box-shadow:0 2px 12px rgba(17,17,17,.04);padding:12px 12px 10px 16px;display:flex;flex-direction:column;gap:8px}
+  .comp:focus-within{border-color:var(--faint)}
+  .comp textarea{border:0;outline:0;resize:none;background:transparent;color:var(--ink);font:inherit;font-size:15px;min-height:24px;max-height:180px;padding:2px 0;line-height:1.5;user-select:text}
+  .comp textarea::placeholder{color:var(--faint)}
+  .chips{display:flex;gap:6px;flex-wrap:wrap}
+  .chips:empty{display:none}
+  .pchip{display:flex;align-items:center;gap:8px;background:var(--hover);border-radius:10px;padding:5px 6px 5px 10px;font-size:12.5px}
+  .pchip .lv{width:7px;height:7px;border-radius:50%;background:var(--danger)}
+  .pchip .x{border:0;background:transparent;color:var(--soft);cursor:pointer;width:20px;height:20px;display:grid;place-items:center;border-radius:5px}
+  .pchip .x:hover{background:var(--line);color:var(--ink)}
+  .crow{display:flex;align-items:center;gap:5px}
+  .rb{width:32px;height:32px;border-radius:9px;border:1px solid var(--line);background:transparent;display:grid;place-items:center;color:var(--soft);cursor:pointer}
+  .rb:hover{color:var(--ink);background:var(--hover)}
+  .seg{display:flex;border:1px solid var(--line);border-radius:9px;padding:2px;gap:2px}
+  .seg[hidden]{display:none}
+  .seg button{border:0;background:transparent;color:var(--soft);font-size:12.5px;padding:4px 10px;border-radius:7px;cursor:pointer;display:flex;align-items:center;gap:6px}
+  .seg button.on{background:var(--hover);color:var(--ink);font-weight:500}
+  .sel{display:inline-flex;align-items:center;gap:5px;border:0;background:transparent;color:var(--soft);font-size:12.5px;padding:6px 8px;border-radius:8px;cursor:pointer;white-space:nowrap;max-width:220px}
+  .sel:hover{background:var(--hover);color:var(--ink)}
+  .sel span{overflow:hidden;text-overflow:ellipsis}
+  .sel svg{width:13px;height:13px}
+  .vbtn{width:32px;height:32px;border-radius:50%;border:1px solid var(--line);background:transparent;color:var(--ink);display:grid;place-items:center;cursor:pointer}
+  .vbtn:hover{background:var(--hover)}
+  .send{width:32px;height:32px;border-radius:50%;border:0;background:var(--btn);color:var(--btnink);display:grid;place-items:center;cursor:pointer}
+  .send:disabled{opacity:.35;cursor:default}
+  .send.rec{background:var(--danger);color:#fff}
+  .mstate{min-height:16px;font-size:11.5px;color:var(--faint)}
+
+  .menu{position:absolute;z-index:30;background:var(--card);border:1px solid var(--line);border-radius:12px;box-shadow:var(--pop);padding:6px;min-width:260px}
+  .menu[hidden]{display:none}
+  /* Positions en CLASSES : la CSP Tauri (empreintes) refuse les style="…". */
+  .menu.up{bottom:50px}.menu.at-left{left:6px}.menu.at-tune{right:120px}.menu.at-model{right:80px}
+  .menu.down{top:38px;right:0}.menu.w300{min-width:300px}
+  .mi .soon{margin-left:auto}
+  .mi[data-style],#mmodel .mi{padding-left:32px}
+  #mmodel{max-height:60vh;overflow-y:auto}
+  .mi[data-style]{padding-left:32px}
+  .bandeau{position:fixed;left:50%;top:46px;transform:translateX(-50%);z-index:70;display:flex;align-items:center;gap:10px;max-width:min(640px,calc(100vw - 32px));background:var(--card);border:1px solid var(--line);border-radius:12px;box-shadow:var(--pop);padding:8px 8px 8px 14px;font-size:13px}
+  .bandeau svg{vertical-align:-3px}
+  .vrow{border-left:2px solid var(--line);padding:6px 0 6px 10px;margin-top:8px;display:flex;flex-direction:column;gap:4px;align-items:flex-start}
+  .mpin{font:inherit;font-size:13px;border:1px solid var(--line);border-radius:9px;background:var(--bg);color:var(--ink);padding:5px 8px}
+  button.tag{border:0;cursor:pointer;font:inherit;font-size:11px}
+  button.tag:hover{color:var(--ink)}
+  .pw a{color:var(--soft)}
+  .mi .ck{position:absolute;left:10px;top:50%;transform:translateY(-50%);display:grid}
+  .utab{width:100%;border-collapse:collapse;font-size:12.5px;font-variant-numeric:tabular-nums}
+  .utab th,.utab td{text-align:left;padding:7px 8px;border-bottom:1px solid var(--line);white-space:nowrap}
+  .utab th{color:var(--faint);font-weight:500}
+  .utab td.n{text-align:right}.utab th.n{text-align:right}
+  .rel{position:relative}.empty.big{padding:40px}.sgroup.pad{padding:12px 16px}
+  .s12{font-size:12px}.s13{font-size:13px}.strong{font-size:14px;color:var(--ink);font-weight:500}
+  .mk20{width:20px!important;height:20px!important}
+  .mw0{min-width:0}
+  .mi{position:relative;display:flex;align-items:center;gap:11px;padding:8px 10px;border-radius:8px;font-size:13px;cursor:pointer;color:var(--ink);white-space:nowrap}
+  .mi:hover{background:var(--hover)}
+  .mi.off{color:var(--faint);cursor:default}
+  .mi.off:hover{background:transparent}
+  .mi .d{font-size:11.5px;color:var(--faint);margin-left:auto}
+  .mi .ar{margin-left:auto;color:var(--faint)}
+  .sep{height:1px;background:var(--line);margin:5px 4px}
+  .mh{font-size:11px;color:var(--faint);padding:6px 10px 4px}
+  .mh.w{white-space:normal;max-width:290px}
+  .sub{display:none;position:absolute;left:calc(100% + 4px);bottom:-6px;background:var(--card);border:1px solid var(--line);border-radius:12px;box-shadow:var(--pop);padding:6px;min-width:250px;max-height:320px;overflow:auto}
+  .mi.has:hover>.sub{display:block}
+  .tog{width:30px;height:18px;border-radius:999px;background:var(--line);position:relative;flex:none;transition:background .15s}
+  .tog::after{content:"";position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:var(--card);box-shadow:0 1px 2px rgba(0,0,0,.2);transition:left .15s}
+  .tog.on{background:var(--btn)}
+  .tog.on::after{left:14px}
+
+  /* pages */
+  .page{flex:1;min-height:0;overflow:auto;padding:26px 40px 40px;user-select:text}
+  .pw{max-width:860px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
+  .ptitle{display:flex;align-items:center;gap:12px}
+  .ptitle h2{margin:0;font-size:30px}
+  .ptabs{display:flex;gap:4px;border-bottom:1px solid var(--line)}
+  .ptabs button{border:0;background:transparent;color:var(--soft);font-size:13.5px;padding:8px 12px;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px}
+  .ptabs button.on{color:var(--ink);border-bottom-color:var(--ink);font-weight:500}
+  .rows{display:flex;flex-direction:column}
+  .sect{font-size:12px;color:var(--faint);padding:16px 4px 2px;display:flex;align-items:center;gap:8px}
+  .row{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:14px;padding:12px 4px;border-bottom:1px solid var(--line)}
+  .row:last-child{border-bottom:0}
+  .ri2{width:34px;height:34px;border-radius:9px;background:var(--hover);display:grid;place-items:center;color:var(--ink);font-size:12px;font-weight:600}
+  .row .n{font-size:14px;font-weight:500;display:flex;align-items:center;gap:8px;flex-wrap:wrap;overflow-wrap:anywhere}
+  .row .d{font-size:12.5px;color:var(--soft);overflow-wrap:anywhere}
+  .row .r{display:flex;align-items:center;gap:10px;font-size:12px;color:var(--soft)}
+  .hint{font-size:12.5px;color:var(--soft);background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 14px;display:flex;gap:10px;align-items:flex-start}
+  .hint svg{margin-top:2px}
+  .empty{border:1px dashed var(--line);border-radius:14px;padding:26px;text-align:center;color:var(--soft);font-size:13px;display:flex;flex-direction:column;gap:8px;align-items:center}
+  .grid3{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px}
+  .ccard{border:1px solid var(--line);border-radius:14px;background:var(--card);overflow:hidden;cursor:pointer;display:flex;flex-direction:column}
+  .ccard:hover{border-color:var(--faint)}
+  .ccard .pv{height:92px;background:var(--side);border-bottom:1px solid var(--line);display:grid;place-items:center;font-size:12px;font-weight:600;color:var(--soft);letter-spacing:.06em}
+  .ccard .inf{padding:10px 12px;display:flex;flex-direction:column;gap:2px;min-width:0}
+  .ccard .n{font-size:13.5px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .ccard .m{font-size:11.5px;color:var(--faint);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .toolrow{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+
+  .settings{flex:1;display:grid;grid-template-columns:220px 1fr;min-height:0}
+  .snav{padding:26px 10px 20px 26px;display:flex;flex-direction:column;gap:1px;overflow:auto}
+  .snav h2{font-size:28px;margin:0 0 12px 10px}
+  .spane{overflow:auto;padding:72px 40px 40px 20px;user-select:text}
+  .spane .in{max-width:660px;display:flex;flex-direction:column;gap:18px}
+  .spane h3{margin:0;font-size:16px;font-weight:600;display:flex;align-items:center;gap:10px}
+  .spane h4{margin:10px 0 -8px;font-size:13px;font-weight:600;display:flex;align-items:center;gap:10px}
+  .sgroup{display:flex;flex-direction:column;border:1px solid var(--line);border-radius:14px;background:var(--card);padding:2px 16px}
+  .srow{display:flex;align-items:center;gap:14px;padding:12px 0;border-bottom:1px solid var(--line)}
+  .scact{margin:10px 0;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  .srow:last-child{border-bottom:0}
+  .srow .sl{flex:1;min-width:0}
+  .srow .n{font-size:13.5px;font-weight:500;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .srow .d{font-size:12.5px;color:var(--soft);overflow-wrap:anywhere}
+  .ed[contenteditable="true"]{background:var(--bg);outline:1px solid var(--faint);border-radius:6px;padding:2px 4px;color:var(--ink)}
+  .pre{white-space:pre-wrap;font-size:12px;padding:8px 10px;border-radius:8px;background:var(--hover);margin:0}
+  .ok{color:var(--run)} .warn{color:var(--warn)}
+  .field{display:flex;flex-direction:column;gap:8px}
+  .field textarea,.field select,.field input{font:inherit;font-size:13px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink);padding:8px 10px;outline:none;resize:vertical}
+
+  /* appel (voix / video) */
+  .callpage{position:fixed;left:0;right:0;top:36px;bottom:0;background:var(--bg);z-index:45;display:flex;flex-direction:column;align-items:center}
+  .callpage[hidden]{display:none}
+  .calltop{align-self:stretch;display:flex;align-items:center;gap:10px;padding:12px 18px;font-size:12.5px;color:var(--soft)}
+  .callstage{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;margin-top:-20px}
+  .callstate{font-size:12.5px;color:var(--soft);min-height:18px}
+  .captions{width:min(62ch,80vw);text-align:center;display:flex;flex-direction:column;gap:8px;margin-bottom:26px;min-height:64px}
+  .capt{white-space:pre-wrap;user-select:text}
+  .capt.you{color:var(--faint);font-size:13px}
+  .capt.waly{font-size:16px;line-height:1.55}
+  .selfview{position:absolute;right:22px;bottom:112px;width:220px;border-radius:14px;border:1px solid var(--line);transform:scaleX(-1);display:none;background:var(--hover)}
+  .selfview.on{display:block}
+  .callctrl{display:flex;gap:14px;margin-bottom:30px}
+  .rnd{width:52px;height:52px;border-radius:50%;border:1px solid var(--line);background:var(--card);display:grid;place-items:center;color:var(--ink);cursor:pointer}
+  .rnd:hover{background:var(--hover)}
+  .rnd.on{background:var(--btn);color:var(--btnink);border-color:var(--btn)}
+  .rnd.off{color:var(--danger);border-color:var(--danger)}
+  .rnd.end{background:var(--danger);border-color:var(--danger);color:#fff}
+  .rnd svg{width:20px;height:20px}
+
+  /* actions d'une ligne de la barre laterale (renommer / supprimer) */
+  .ri .more{display:none;margin-left:auto;width:22px;height:22px;border:0;background:transparent;color:var(--soft);border-radius:6px;cursor:pointer;place-items:center;flex:none}
+  .ri:hover .more{display:grid}
+  .ri:hover .st{display:none}
+  .ri .more:hover{background:var(--line);color:var(--ink)}
+  .menu.fixed{position:fixed}
+  .mi.danger{color:var(--danger)}
+  /* dialogue (confirmer, renommer) */
+  .veil{position:fixed;inset:0;background:var(--veil);display:grid;place-items:center;z-index:60}
+  .dlg{width:420px;max-width:calc(100vw - 40px);background:var(--card);border:1px solid var(--line);border-radius:16px;box-shadow:var(--pop);padding:18px;display:flex;flex-direction:column;gap:12px}
+  .dlg h3{margin:0;font-size:15px;font-weight:600}
+  .dlg p{margin:0;font-size:13px;color:var(--soft);white-space:pre-line}
+  .dlg input{font:inherit;font-size:14px;border:1px solid var(--line);border-radius:10px;padding:8px 10px;background:var(--bg);color:var(--ink);outline:none;user-select:text}
+  .dlg .df{display:flex;justify-content:flex-end;gap:8px}
+  .bt.solid.danger{background:var(--danger);border-color:var(--danger);color:#fff}
+  /* visionneuse : les creations s'ouvrent dans l'app */
+  .viewer{position:absolute;top:0;right:0;bottom:0;width:min(700px,60%);background:var(--bg);border-left:1px solid var(--line);box-shadow:-12px 0 30px rgba(17,17,17,.06);display:flex;flex-direction:column;z-index:20}
+  .vhead{display:flex;align-items:center;gap:10px;height:50px;padding:0 10px 0 18px;border-bottom:1px solid var(--line);flex:none}
+  .vhead .vn{font-size:13.5px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+  .vbody{flex:1;min-height:0;overflow:auto;padding:20px 24px;user-select:text;display:flex;flex-direction:column;gap:10px}
+  .vframe{width:100%;min-height:72vh;flex:1;border:1px solid var(--line);border-radius:10px;background:#fff}
+  .vpre{white-space:pre-wrap;font-family:ui-monospace,"Cascadia Mono",monospace;font-size:12.5px;line-height:1.55;margin:0}
+  .vtable{overflow:auto;border:1px solid var(--line);border-radius:10px}
+  .vtable table{border-collapse:collapse;font-size:12.5px;font-variant-numeric:tabular-nums;min-width:100%}
+  .vtable th,.vtable td{border-bottom:1px solid var(--line);border-right:1px solid var(--line);padding:5px 9px;text-align:left;white-space:nowrap}
+  .vtable th{position:sticky;top:0;background:var(--side);font-weight:600;color:var(--soft)}
+  .vtable td.num{color:var(--faint);background:var(--side)}
+  .vdoc{max-width:66ch;font-size:14.5px;line-height:1.65}
+  .vdoc h1{font-size:22px;margin:4px 0 10px}.vdoc h2{font-size:18px;margin:14px 0 8px}.vdoc h3{font-size:15.5px;margin:12px 0 6px}
+  .vdoc p{margin:0 0 10px}.vdoc ul{margin:0 0 10px;padding-left:22px}
+  .vdoc .vtable{margin:4px 0 14px}
+  .vslides{display:flex;flex-direction:column;gap:14px}
+  .vslide{aspect-ratio:16/9;border:1px solid var(--line);border-radius:12px;background:var(--card);padding:22px 26px;display:flex;flex-direction:column;gap:8px;overflow:hidden;position:relative}
+  .vslide .t0{font-size:20px;font-weight:600}
+  .vslide .tx{font-size:13.5px;color:var(--soft)}
+  .vslide .no{position:absolute;right:12px;bottom:8px;font-size:11px;color:var(--faint)}
+  .vimg{max-width:100%;border-radius:8px;border:1px solid var(--line);display:block}
+  .vpages{display:flex;flex-direction:column;gap:14px;align-items:center}
+  .vpages img{width:100%;max-width:820px;border:1px solid var(--line);border-radius:4px;background:#fff;box-shadow:0 2px 10px rgba(17,17,17,.06)}
+
+  @media (prefers-reduced-motion:reduce){ .dot.travail{animation:none} .tog,.tog::after,.fold svg,.acts{transition:none} }
+</style>
+</head>
+<body>
+  <div class="titlebar" data-tauri-drag-region>
+    <span class="brand"><canvas id="mark" width="18" height="18"></canvas> Waly</span>
+    <span class="g" data-tauri-drag-region></span>
+    <button class="wbtn" id="min" title="Réduire">—</button>
+    <button class="wbtn" id="max" title="Agrandir">▢</button>
+    <button class="wbtn close" id="close" title="Fermer">✕</button>
+  </div>
+
+  <div class="shell" id="shell">
+    <aside class="side">
+      <div class="sidetop"><button class="ib" id="fold" title="Replier la barre"><svg class="i" viewBox="0 0 16 16"><rect x="2.5" y="3" width="11" height="10" rx="1.5"/><path d="M6.5 3v10"/></svg></button></div>
+      <button class="ni new" id="new"><span class="plusc"><svg class="i" viewBox="0 0 16 16"><path d="M8 3v10M3 8h10"/></svg></span>Nouvelle conversation</button>
+      <button class="ni" id="searchbtn"><svg class="i" viewBox="0 0 16 16"><circle cx="7" cy="7" r="4.2"/><path d="M10.2 10.2L13.5 13.5"/></svg>Rechercher<span class="k">Ctrl K</span></button>
+      <div class="sfield" id="sfield"><input id="sinput" placeholder="Chercher une conversation…" /></div>
+      <button class="ni" data-page="personnaliser"><svg class="i" viewBox="0 0 16 16"><path d="M3 4.5h6M12 4.5h1M3 11.5h1M7 11.5h6"/><circle cx="10.5" cy="4.5" r="1.5"/><circle cx="5.5" cy="11.5" r="1.5"/></svg>Personnaliser</button>
+      <button class="ni" data-page="projets"><svg class="i" viewBox="0 0 16 16"><path d="M2.5 4.5h4l1.5 1.5h5.5v6.5h-11z"/></svg>Projets</button>
+      <button class="ni" data-page="creations"><svg class="i" viewBox="0 0 16 16"><rect x="2.5" y="2.5" width="5" height="5" rx="1"/><rect x="8.5" y="2.5" width="5" height="5" rx="1"/><rect x="2.5" y="8.5" width="5" height="5" rx="1"/><rect x="8.5" y="8.5" width="5" height="5" rx="1"/></svg>Créations</button>
+      <button class="ni" data-page="programme"><svg class="i" viewBox="0 0 16 16"><circle cx="8" cy="8" r="5.5"/><path d="M8 5v3l2 1.5"/></svg>Programmé<span class="k" id="nrappels"></span></button>
+      <div class="lists">
+        <div class="grp" id="grp-miss"><button class="fold" data-fold="missions"><svg class="i sm" viewBox="0 0 16 16"><path d="M4.5 6.5L8 10l3.5-3.5"/></svg>Missions</button><span class="c" id="missinfo"></span></div>
+        <div class="gl" id="missions"></div>
+        <div class="grp" id="grp-conv"><button class="fold" data-fold="convs"><svg class="i sm" viewBox="0 0 16 16"><path d="M4.5 6.5L8 10l3.5-3.5"/></svg>Conversations</button></div>
+        <div class="gl" id="convs"></div>
+      </div>
+      <div class="me" id="me" title="Paramètres">
+        <div class="av">W</div>
+        <div class="mw0"><div class="n">Waly local</div><div class="s" id="rdlabel"><i></i><span id="rdtext">rien ne sort</span></div></div>
+        <span class="gear"><svg class="i" viewBox="0 0 16 16"><circle cx="8" cy="8" r="2.2"/><path d="M8 1.8v1.8M8 12.4v1.8M1.8 8h1.8M12.4 8h1.8M3.6 3.6l1.3 1.3M11.1 11.1l1.3 1.3M3.6 12.4l1.3-1.3M11.1 4.9l1.3-1.3"/></svg></span>
+      </div>
+    </aside>
+
+    <main class="main">
+      <!-- conversation / mission / accueil -->
+      <section class="view" id="v-chat">
+        <div class="mbar">
+          <button class="ib" id="unfold" title="Déplier la barre" hidden><svg class="i" viewBox="0 0 16 16"><rect x="2.5" y="3" width="11" height="10" rx="1.5"/><path d="M6.5 3v10"/></svg></button>
+          <span class="title" id="mtitle"></span>
+          <button class="tag" id="ptag" hidden title="Ouvrir le projet"></button>
+          <span class="chip" id="mchip" hidden></span>
+          <span class="g"></span>
+          <span class="chip" id="preschip" hidden><span class="dot" id="presdot"></span><span id="prestxt"></span></span>
+          <div class="rel" id="sharewrap">
+            <button class="bt small" id="sharebtn"><svg class="i sm" viewBox="0 0 16 16"><path d="M8 10V2.5M5 5.5l3-3 3 3M3.5 9v4h9V9"/></svg>Partager</button>
+            <div class="menu down w300" id="mshare" hidden>
+              <div class="mi" id="copyconv"><svg class="i" viewBox="0 0 16 16"><rect x="5.5" y="5.5" width="7.5" height="7.5" rx="1.5"/><path d="M3 10.5V4a1 1 0 011-1h6.5"/></svg>Copier la conversation</div>
+              <div id="sharecontacts"></div>
+              <div class="mi off">Appeler un contact sur cette conversation<span class="soon">bientôt</span></div>
+              <div class="sep"></div>
+              <div class="mi" data-export="pdf">Exporter en PDF<span class="d">Téléchargements</span></div>
+              <div class="mi" data-export="docx">Exporter en Word</div>
+              <div class="mi" data-export="md">Exporter en Markdown</div>
+            </div>
+          </div>
+          <div class="rel" id="morewrap">
+            <button class="ib" id="convmore" title="Plus"><svg class="i" viewBox="0 0 16 16"><circle cx="4" cy="8" r=".9"/><circle cx="8" cy="8" r=".9"/><circle cx="12" cy="8" r=".9"/></svg></button>
+            <div class="menu down" id="mconv" hidden>
+              <div class="mi" id="conv-rename">Renommer</div>
+              <div class="mi" id="conv-resume">Ce que Waly retient du début</div>
+              <div class="mi danger" id="conv-delete">Supprimer</div>
+            </div>
+          </div>
+        </div>
+        <div class="home" id="home">
+          <div class="hello"><canvas id="homemark" width="34" height="34"></canvas><h1 class="serif" id="hello">Bonjour</h1></div>
+          <div class="compwrap" id="homeslot"></div>
+        </div>
+        <div class="thread" id="thread" hidden><div class="col" id="col"></div></div>
+        <div class="dock" id="dock" hidden></div>
+      </section>
+
+      <section class="view" id="v-page" hidden><div class="page" id="page"></div></section>
+      <section class="view" id="v-settings" hidden></section>
+
+      <aside class="viewer" id="viewer" hidden>
+        <div class="vhead"><span class="tag" id="vtype"></span><span class="vn" id="vname"></span><span class="g"></span>
+          <button class="bt small" id="vexplorer">Afficher dans l'Explorateur</button>
+          <button class="ib" id="vclose" title="Fermer (Échap)"><svg class="i" viewBox="0 0 16 16"><path d="M4.5 4.5l7 7M11.5 4.5l-7 7"/></svg></button>
+        </div>
+        <div class="vbody" id="vbody"></div>
+      </aside>
+
+      <!-- saisie (deplacee entre l'accueil et le bas du fil) -->
+      <div id="compbox" class="compwrap">
+        <div class="waits" id="waits"></div>
+        <div class="comp" id="comp">
+          <div class="chips" id="chips"></div>
+          <textarea id="input" rows="1" placeholder="Comment puis-je t'aider ?"></textarea>
+          <div class="crow">
+            <button class="rb" id="plusbtn" title="Ajouter"><svg class="i" viewBox="0 0 16 16"><path d="M8 3v10M3 8h10"/></svg></button>
+            <div class="seg" id="modeseg"><button data-m="conversation" class="on"><svg class="i sm" viewBox="0 0 16 16"><path d="M3 3.5h10v7H7l-3 2.5v-2.5H3z"/></svg>Conversation</button><button data-m="mission"><svg class="i sm" viewBox="0 0 16 16"><path d="M8 2.5l5.5 5.5L8 13.5 2.5 8z"/></svg>Mission</button></div>
+            <span class="g"></span>
+            <button class="sel" id="tunebtn" title="Réglages du message"><svg class="i" viewBox="0 0 16 16"><path d="M3 4.5h6M12 4.5h1M3 11.5h1M7 11.5h6"/><circle cx="10.5" cy="4.5" r="1.5"/><circle cx="5.5" cy="11.5" r="1.5"/></svg></button>
+            <button class="sel" id="modelbtn" title="Modèle"><span id="model">modèle local</span><svg class="i" viewBox="0 0 16 16"><path d="M4.5 6.5L8 10l3.5-3.5"/></svg></button>
+            <button class="vbtn" id="micbtn" title="Appeler Waly (voix)"><svg class="i" viewBox="0 0 16 16"><path d="M2.5 7v2M5 5v6M8 3v10M11 5v6M13.5 7v2"/></svg></button>
+            <button class="send" id="send" title="Envoyer"><svg class="i" viewBox="0 0 16 16"><path d="M8 13V3M4 7l4-4 4 4"/></svg></button>
+          </div>
+          <div class="menu up at-left" id="mplus" hidden></div>
+          <div class="menu up at-tune w300" id="mtune" hidden>
+            <div class="mi" id="tunereflex">Réflexion approfondie<span class="tog reflextog"></span></div>
+            <div class="mh w">Waly réfléchit par écrit avant de répondre et te montre sa réflexion. En conversation écrite ; nettement plus lent sur cette machine.</div>
+            <div class="sep"></div>
+            <div class="mh">Style de réponse · toutes les conversations</div>
+            <div class="mi" data-style="concis">Concis<span class="d">une ou deux phrases</span></div>
+            <div class="mi" data-style="normal">Normal<span class="d">une à trois phrases</span></div>
+            <div class="mi" data-style="detaille">Détaillé<span class="d">complet, structuré</span></div>
+          </div>
+          <div class="menu up at-model w300" id="mmodel" hidden></div>
+        </div>
+        <div class="mstate" id="mstate"></div>
+      </div>
+    </main>
+  </div>
+
+  <div class="menu fixed" id="rowmenu" hidden>
+    <div class="mi" id="row-rename">Renommer</div>
+    <div class="mi danger" id="row-delete">Supprimer</div>
+  </div>
+  <div class="veil" id="dlgveil" hidden>
+    <div class="dlg" role="dialog" aria-modal="true">
+      <h3 id="dlgtitle"></h3><p id="dlgtext"></p><input id="dlginput" hidden />
+      <div class="df"><button class="bt" id="dlgcancel">Annuler</button><button class="bt solid" id="dlgok">OK</button></div>
+    </div>
+  </div>
+
+  <div class="callpage" id="callpage" hidden>
+    <div class="calltop"><span id="calltitle">Appel</span><span class="g"></span><span class="chip">Local · rien ne sort</span></div>
+    <div class="callstage">
+      <canvas id="calleclipse" width="200" height="200"></canvas>
+      <div class="callstate" id="callstate"></div>
+    </div>
+    <div class="captions"><div class="capt you" id="captyou"></div><div class="capt waly" id="captwaly"></div></div>
+    <img class="selfview" id="selfview" alt="" />
+    <div class="callctrl">
+      <button class="rnd" id="cmute" title="Couper le micro"><svg class="i" viewBox="0 0 16 16"><rect x="6" y="2" width="4" height="8" rx="2"/><path d="M3.5 8a4.5 4.5 0 009 0M8 12.5V14"/></svg></button>
+      <button class="rnd" id="ccam" title="Passer en vidéo"><svg class="i" viewBox="0 0 16 16"><rect x="2" y="4.5" width="8.5" height="7" rx="1.5"/><path d="M10.5 7l3.5-2v6l-3.5-2"/></svg></button>
+      <button class="rnd" id="reduire" title="Continuer en texte — l'appel continue"><svg class="i" viewBox="0 0 16 16"><path d="M3 3.5h10v7H7l-3 2.5v-2.5H3z"/></svg></button>
+      <button class="rnd end" id="hangup" title="Raccrocher"><svg class="i" viewBox="0 0 16 16"><path d="M2.5 9.5c3-3 8-3 11 0l-1.6 1.6-2.2-1v-1.6a6 6 0 00-3.4 0v1.6l-2.2 1z"/></svg></button>
+    </div>
+  </div>
+
+<script>
+(function(){
+  const T = window.__TAURI__;
+  const invoke = T ? T.core.invoke : async()=>{ throw new Error("hors Tauri"); };
+  const win = (T && T.window) ? T.window.getCurrentWindow() : null;
+  const $ = (id)=>document.getElementById(id);
+  const $$ = (s,r=document)=>[...r.querySelectorAll(s)];
+  const on = (id,fn)=>{ const e=$(id); if(e) e.addEventListener('click',fn); };
+  const esc = (s)=>String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  if(win){ on('min',()=>win.minimize()); on('max',()=>win.toggleMaximize()); on('close',()=>win.close()); }
+
+  // ── theme (Parametres > General) ─────────────────────────────────────
+  function applyTheme(t){ if(t==='light'||t==='dark') document.documentElement.dataset.theme=t; else delete document.documentElement.dataset.theme; }
+  try{ applyTheme(localStorage.getItem('waly-theme')); }catch(e){}
+  function dark(){ const t=document.documentElement.dataset.theme; return t ? t==='dark' : matchMedia('(prefers-color-scheme:dark)').matches; }
+
+  const ICON = {
+    mark:'<svg class="i mk20" viewBox="0 0 16 16"><circle cx="8" cy="8" r="5" stroke-width="1.8"/><circle cx="12.6" cy="5.2" r=".9" fill="currentColor" stroke="none"/></svg>',
+    check:'<svg class="i sm" viewBox="0 0 16 16"><path d="M3.5 8.5l3 3 6-7"/></svg>',
+    copy:'<svg class="i" viewBox="0 0 16 16"><rect x="5.5" y="5.5" width="7.5" height="7.5" rx="1.5"/><path d="M3 10.5V4a1 1 0 011-1h6.5"/></svg>',
+    right:'<svg class="i sm" viewBox="0 0 16 16"><path d="M6 4l4 4-4 4"/></svg>',
+    x:'<svg class="i sm" viewBox="0 0 16 16"><path d="M4.5 4.5l7 7M11.5 4.5l-7 7"/></svg>',
+    clip:'<svg class="i" viewBox="0 0 16 16"><path d="M10.5 5.5l-4.8 4.8a1.5 1.5 0 002.1 2.1l5.3-5.3a3 3 0 00-4.2-4.2L3.6 8.2a4.5 4.5 0 006.4 6.4"/></svg>',
+    folder:'<svg class="i" viewBox="0 0 16 16"><path d="M2.5 4.5h4l1.5 1.5h5.5v6.5h-11z"/></svg>',
+    screen:'<svg class="i" viewBox="0 0 16 16"><rect x="2.5" y="3.5" width="11" height="8" rx="1"/><path d="M6 13.5h4"/></svg>',
+    rec:'<svg class="i" viewBox="0 0 16 16"><circle cx="8" cy="8" r="2.5" fill="currentColor"/><circle cx="8" cy="8" r="5.5"/></svg>',
+    spark:'<svg class="i" viewBox="0 0 16 16"><path d="M8 2.5l1.4 3.6 3.6 1.4-3.6 1.4L8 12.5 6.6 8.9 3 7.5l3.6-1.4z"/></svg>',
+    plug:'<svg class="i" viewBox="0 0 16 16"><path d="M6 2.5v3M10 2.5v3M4.5 5.5h7v2a3.5 3.5 0 01-7 0zM8 11v2.5"/></svg>',
+    box:'<svg class="i" viewBox="0 0 16 16"><rect x="3" y="3" width="10" height="10" rx="2"/><path d="M6 8h4M8 6v4"/></svg>',
+    hand:'<svg class="i" viewBox="0 0 16 16"><path d="M5.5 8V3.8a1 1 0 012 0V7.5M7.5 7V2.8a1 1 0 012 0V7.5M9.5 7.2V3.8a1 1 0 012 0v5.5a4.5 4.5 0 01-4.5 4.5h-.4a4 4 0 01-3.2-1.6L1.8 9.7a1 1 0 011.5-1.3L5.5 10"/></svg>',
+    shield:'<svg class="i" viewBox="0 0 16 16"><path d="M8 2l5 2v4c0 3-2.2 5.2-5 6-2.8-.8-5-3-5-6V4z"/></svg>',
+    bell:'<svg class="i" viewBox="0 0 16 16"><path d="M8 2.5a4 4 0 014 4v3l1.5 2h-11L4 9.5v-3a4 4 0 014-4zM6.5 13a1.5 1.5 0 003 0"/></svg>',
+    task:'<svg class="i" viewBox="0 0 16 16"><rect x="2.5" y="2.5" width="11" height="11" rx="2"/><path d="M5.5 8l2 2 3-4"/></svg>',
+    edit:'<svg class="i sm" viewBox="0 0 16 16"><path d="M10.5 3l2.5 2.5L6 12.5H3.5V10z"/></svg>',
+    trash:'<svg class="i sm" viewBox="0 0 16 16"><path d="M3.5 4.5h9M6.5 4.5V3h3v1.5M5 4.5l.5 8.5h5l.5-8.5"/></svg>',
+    plus:'<svg class="i sm" viewBox="0 0 16 16"><path d="M8 3v10M3 8h10"/></svg>',
+    dots:'<svg class="i sm" viewBox="0 0 16 16"><circle cx="4" cy="8" r=".9"/><circle cx="8" cy="8" r=".9"/><circle cx="12" cy="8" r=".9"/></svg>'
+  };
+
+  // ── marque d'identite + « Souffle » a l'eveil (R6b, grave 21/07) ──────
+  let eveilAt=-1e9;
+  function drawMark(ctx,S,now,env,inspire){
+    const cx=S/2,cy=S/2,Rm=S*0.32*(1+inspire),lw=Math.max(1.6,S*.08);
+    const ring=dark()?'#EDEDED':'#111111',inte=dark()?'#101010':'#FFFFFF',pr=dark()?'235,235,235':'90,90,90';
+    ctx.clearRect(0,0,S,S);
+    if(env>0.02){ const g=ctx.createRadialGradient(cx,cy,Rm*0.7,cx,cy,S/2); g.addColorStop(0,'rgba('+pr+','+(0.35*env).toFixed(3)+')'); g.addColorStop(1,'rgba('+pr+',0)'); ctx.fillStyle=g; ctx.beginPath(); ctx.arc(cx,cy,S/2,0,7); ctx.fill(); }
+    ctx.fillStyle=inte; ctx.beginPath(); ctx.arc(cx,cy,Rm,0,7); ctx.fill();
+    ctx.lineWidth=lw; ctx.strokeStyle=ring; ctx.beginPath(); ctx.arc(cx,cy,Rm,0,7); ctx.stroke();
+    for(const p of [{a:-2.2,ph:1},{a:-0.6,ph:2},{a:0.9,ph:4},{a:2.5,ph:0}]){
+      const fl=0.8+0.2*Math.sin(now/1000+p.ph)+1.2*env, px=cx+Math.cos(p.a)*Rm, py=cy+Math.sin(p.a)*Rm, r=S*.09*fl;
+      const g=ctx.createRadialGradient(px,py,0,px,py,r); g.addColorStop(0,'rgba('+pr+',0.9)'); g.addColorStop(1,'rgba('+pr+',0)');
+      ctx.fillStyle=g; ctx.beginPath(); ctx.arc(px,py,r,0,7); ctx.fill(); }
+  }
+  (function(){
+    const marks=[['mark',18],['homemark',34]].map(([id,S])=>{ const cv=$(id); const dpr=Math.min(2,devicePixelRatio||1); cv.width=S*dpr; cv.height=S*dpr; cv.style.width=S+'px'; cv.style.height=S+'px'; const ctx=cv.getContext('2d'); ctx.scale(dpr,dpr); return {cv,ctx,S}; });
+    let last=0;
+    function draw(now){
+      const dep=now/1000-eveilAt, seq=dep>=0&&dep<3.2;
+      if(!seq && now-last<80){ requestAnimationFrame(draw); return; } last=now;
+      const env=seq?Math.min(dep/0.08,1)*Math.exp(-dep*3.2):0;
+      const inspire=seq?(dep<0.15?-0.06*(dep/0.15):-0.06*Math.exp(-(dep-0.15)*6)+0.08*Math.min((dep-0.15)/0.25,1)*Math.exp(-(dep-0.4)*2.2)):0;
+      for(const m of marks){ if(m.cv.offsetParent!==null) drawMark(m.ctx,m.S,now,env,inspire); }
+      requestAnimationFrame(draw);
+    }
+    requestAnimationFrame(draw);
+  })();
+
+  // ── etat ──────────────────────────────────────────────────────────────
+  const thread=$('thread'), col=$('col'), input=$('input'), sendBtn=$('send'), mstate=$('mstate');
+  // Espace unique : une mission = une conversation ou Waly travaille par
+  // etapes (kinds[id]==='agent'). agentDraft = mission pas encore demarree.
+  let currentId=1, titles={}, kinds={}, status={}, busy=false, agentDraft=false, homeMode=false, lastHistory=[];
+  const enMission=()=> agentDraft || kinds[currentId]==='agent';
+  function flash(t,ms){ mstate.textContent=t; if(ms) setTimeout(()=>{ if(mstate.textContent===t) mstate.textContent=''; }, ms); }
+
+  function nearBottom(){ return thread.scrollHeight - thread.scrollTop - thread.clientHeight < 90; }
+  function autoscroll(force){ if(force || nearBottom()) thread.scrollTop=thread.scrollHeight; }
+
+  // ── markdown minimal (echappe D'ABORD) ────────────────────────────────
+  function inline(s){ return s.replace(/`([^`]+)`/g,'<code>$1</code>').replace(/\*\*([^*]+)\*\*/g,'<b>$1</b>').replace(/(^|[\s(])\*([^*\s][^*]*)\*/g,'$1<i>$2</i>'); }
+  function md(src){
+    if(!src) return '';
+    const lines=esc(src).split('\n'); let out='', list=null, code=false;
+    const closeList=()=>{ if(list){ out+='</'+list+'>'; list=null; } };
+    for(const l of lines){
+      if(l.trim().startsWith('```')){ if(code){ out+='</code></pre>'; code=false; } else { closeList(); out+='<pre><code>'; code=true; } continue; }
+      if(code){ out+=l+'\n'; continue; }
+      const h=l.match(/^(#{1,4})\s+(.*)/);
+      if(h){ closeList(); const n=h[1].length+1; out+='<h'+n+'>'+inline(h[2])+'</h'+n+'>'; continue; }
+      const ul=l.match(/^\s*[-*•]\s+(.*)/), ol=l.match(/^\s*\d+[.)]\s+(.*)/);
+      if(ul||ol){ const t=ul?'ul':'ol'; if(list!==t){ closeList(); out+='<'+t+'>'; list=t; } out+='<li>'+inline((ul||ol)[1])+'</li>'; continue; }
+      closeList(); if(l.trim()==='') continue; out+='<p>'+inline(l)+'</p>';
+    }
+    if(code) out+='</code></pre>'; closeList(); return out;
+  }
+  function copyText(t){ try{ navigator.clipboard.writeText(t); flash('copié',1500); }catch(e){} }
+
+  // ── messages ──────────────────────────────────────────────────────────
+  function addYou(text){
+    const el=document.createElement('div'); el.className='you';
+    el.innerHTML='<div class="b"></div><div class="acts"><button title="Copier">'+ICON.copy+'</button></div>';
+    // Les tours dictes a la voix portent l'en-tete [horodatage | conscience]
+    // destine au modele, pas a l'ecran.
+    const shown=sansJoints(String(text).replace(/^\[[^\]]*\]\s*/,''));
+    el.querySelector('.b').textContent=shown;
+    el.querySelector('button').onclick=()=>copyText(shown);
+    col.appendChild(el); autoscroll(true); return el;
+  }
+  function addWaly(text, err){
+    const el=document.createElement('div'); el.className='waly'+(err?' err':'');
+    el.innerHTML='<span class="mk">'+ICON.mark+'</span><div class="wb"><div class="body html"></div><div class="acts"><button title="Copier">'+ICON.copy+'</button></div></div>';
+    const b=el.querySelector('.body');
+    if(err) b.textContent=text; else b.innerHTML=md(text);
+    el.querySelector('.acts button').onclick=()=>copyText(el.dataset.raw||text);
+    el.dataset.raw=text||'';
+    col.appendChild(el); autoscroll(true); return el;
+  }
+  // Reflexion approfondie : bloc repliable au-dessus de la reponse.
+  function setThink(el, text, open, label){
+    let d=el.querySelector('.think');
+    if(!d){ d=document.createElement('details'); d.className='think'; d.innerHTML='<summary>Réflexion</summary><div class="tt"></div>'; el.querySelector('.wb').insertBefore(d, el.querySelector('.body')); }
+    d.querySelector('.tt').textContent=text.trim(); d.open=!!open;
+    if(label) d.querySelector('summary').textContent=label;
+    return d;
+  }
+  function addStep(name, info){
+    const el=document.createElement('div'); el.className='step';
+    el.innerHTML='<span class="sb">'+ICON.check+'</span><span class="sn"></span><span class="si"></span>';
+    el.querySelector('.sn').textContent=name;
+    el.querySelector('.si').textContent=info?('— '+info):'';
+    col.appendChild(el); autoscroll(); return el;
+  }
+  // Livrable cliquable : la creation apparait dans le fil.
+  function fileCard(chemin){
+    const nom=chemin.split(/[\\/]/).pop(), ext=(nom.split('.').pop()||'').toUpperCase().slice(0,4);
+    const el=document.createElement('div'); el.className='made';
+    el.innerHTML='<span class="fi"></span><div class="mw0"><div class="n"></div><div class="p"></div></div><span class="o">Afficher ↗</span>';
+    el.querySelector('.fi').textContent=ext; el.querySelector('.n').textContent=nom; el.querySelector('.p').textContent='dans Créations · '+chemin;
+    el.querySelector('.o').textContent='Ouvrir';
+    el.title='Ouvrir dans Waly';
+    el.onclick=()=>openViewer(chemin);
+    return el;
+  }
+  function maybeFileCard(text){
+    if(!text) return;
+    const re=/(?:cree|remplace) ?: (.+?) \(\d+ octets\)/g; let m;
+    while((m=re.exec(text))){ col.appendChild(fileCard(m[1].trim())); autoscroll(); }
+  }
+
+  // ── accueil <-> fil ───────────────────────────────────────────────────
+  function setHome(on){
+    homeMode=on;
+    $('home').hidden=!on; thread.hidden=on; $('dock').hidden=on;
+    const box=$('compbox');
+    (on ? $('homeslot') : $('dock')).appendChild(box);
+    $('modeseg').hidden = !on;
+    $('sharewrap').hidden = on; $('morewrap').hidden = on;
+    const h=new Date().getHours();
+    $('hello').textContent = agentDraft ? 'Quelle mission me confies-tu ?' : ((h<5||h>=18)?'Bonsoir':'Bonjour');
+  }
+  function renderHistory(h){
+    lastHistory=h||[]; col.innerHTML='';
+    if(!h || !h.length){ setHome(true); return; }
+    setHome(false);
+    const els=[];
+    for(const [role, content] of h){ els.push(role==='user' ? addYou(content) : addWaly(content)); }
+    autoscroll(true);
+    placeFiles(els, h.length);
+  }
+  // Les fichiers crees reprennent leur place dans le fil a la reouverture.
+  async function placeFiles(els, shown){
+    const sid=currentId; let r=null;
+    try{ r=await invoke('core_fichiers_session',{id:sid}); }catch(e){ return; }
+    if(!r || sid!==currentId || !els.length || !els[0].isConnected) return;
+    const offset=r.total-shown;
+    for(const f of r.fichiers){
+      const k=f.position-offset; if(k<=0) continue;
+      const card=fileCard(f.chemin);
+      if(k>=els.length) col.appendChild(card); else col.insertBefore(card, els[k]);
+    }
+    for(const x of (r.reflexions||[])){
+      const k=x.position-offset;
+      if(k>=0 && k<els.length && els[k].classList.contains('waly')) setThink(els[k], x.texte, false);
+    }
+  }
+  function setTitle(){
+    const t = agentDraft ? 'Nouvelle mission' : (titles[currentId] || 'Conversation');
+    $('mtitle').innerHTML = (enMission() ? '<svg class="i sm" viewBox="0 0 16 16"><path d="M8 2.5l5.5 5.5L8 13.5 2.5 8z"/></svg>' : '') + '<span></span>';
+    $('mtitle').lastChild.textContent = homeMode && !agentDraft ? '' : t;
+    const st=status[currentId]; const chip=$('mchip');
+    const LAB={travail:'au travail',attente:'attend ton accord',fini:'terminée',echec:'échec'};
+    chip.hidden = !(kinds[currentId]==='agent' && st && !agentDraft);
+    if(!chip.hidden) chip.innerHTML='<span class="dot '+esc(st)+'"></span>'+esc(LAB[st]||st);
+  }
+  function setPlaceholder(){
+    input.placeholder = agentDraft ? 'Donne un objectif : Waly avance par étapes et demande ton accord avant d’agir…'
+      : (kinds[currentId]==='agent' ? 'Écris sur cette mission…' : (homeMode ? 'Comment puis-je t’aider ?' : 'Réponds à Waly…'));
+    $$('#modeseg button').forEach(b=>b.classList.toggle('on', b.dataset.m===(agentDraft?'mission':'conversation')));
+  }
+
+  // ── sessions : Missions puis Conversations ────────────────────────────
+  async function refreshSessions(q){
+    let list=[];
+    try{ list = q ? await invoke('core_search',{query:q, kind:'all'}) : await invoke('core_sessions',{kind:'all'}); }catch(e){}
+    titles={}; kinds={}; status={};
+    for(const [id,t,s,k] of list){ titles[id]=t; kinds[id]=k; status[id]=s; }
+    const miss=$('missions'), convs=$('convs'); miss.innerHTML=''; convs.innerHTML='';
+    let attente=0, nm=0, nc=0;
+    for(const [id, title, st, k] of list){
+      const el=document.createElement('div'); el.className='ri'+((id===currentId && !agentDraft && !pageOpen)?' on':'');
+      if(k==='agent'){
+        nm++; if(st==='attente') attente++;
+        el.innerHTML='<span class="dot '+esc(st||'')+'"></span><span class="t"></span>';
+        el.title='état : '+(st||'—');
+      } else {
+        nc++;
+        el.innerHTML='<span class="t"></span>';
+      }
+      el.querySelector('.t').textContent=title;
+      const more=document.createElement('button'); more.className='more'; more.title='Renommer, supprimer'; more.innerHTML=ICON.dots;
+      more.addEventListener('click', ev=>{ ev.stopPropagation(); openRowMenu(more, id); });
+      el.appendChild(more);
+      el.addEventListener('click', ()=>openSession(id));
+      (k==='agent'?miss:convs).appendChild(el);
+    }
+    if(!nm){ miss.innerHTML='<div class="noconv">'+(q?'rien trouvé':'aucune mission — choisis « Mission » dans la saisie')+'</div>'; }
+    if(!nc){ convs.innerHTML='<div class="noconv">'+(q?'rien trouvé':'aucune conversation')+'</div>'; }
+    $('missinfo').textContent = attente ? (attente+' attend'+(attente>1?'ent':'')+' ton accord') : '';
+    setTitle();
+  }
+  async function openSession(id){
+    if(busy) return;
+    closePage();
+    if(id===currentId && !agentDraft){ return; }
+    projetPourMission=null;
+    try{ const h=await invoke('core_select_session',{id}); currentId=id; agentDraft=false; renderHistory(h); setTitle(); setPlaceholder(); refreshProjetTitre(); refreshSessions($('sinput').value.trim()); refreshPlus(); }catch(e){}
+  }
+  on('new', async ()=>{
+    if(busy) return; closePage(); projetPourMission=null; setTimeout(refreshProjetTitre,0);
+    // Deja sur une conversation vide : on la reutilise (pas de sessions vides empilees).
+    if(homeMode && !lastHistory.length && kinds[currentId]!=='agent'){
+      agentDraft=false; setHome(true); setTitle(); setPlaceholder(); refreshPlus(); refreshSessions(); input.focus(); return;
+    }
+    try{ currentId = await invoke('core_new_session'); agentDraft=false; renderHistory([]); await refreshSessions(); setPlaceholder(); refreshPlus(); input.focus(); }catch(e){}
+  });
+  $('modeseg').addEventListener('click', e=>{
+    const b=e.target.closest('button'); if(!b || busy) return;
+    agentDraft = b.dataset.m==='mission';
+    setHome(true); setTitle(); setPlaceholder(); refreshPlus(); refreshSessions($('sinput').value.trim()); input.focus();
+  });
+  // ── renommer / supprimer (conversations et missions) ──────────────────
+  let rowTarget=null;
+  function openRowMenu(btn, id){
+    const m=$('rowmenu'), r=btn.getBoundingClientRect();
+    closeMenus(); rowTarget=id;
+    m.style.left=Math.max(8, Math.min(r.left, innerWidth-280))+'px';
+    m.style.top=Math.min(r.bottom+4, innerHeight-110)+'px';
+    m.hidden=false;
+  }
+  function dialog({titre, texte, valeur, ok, danger}){
+    return new Promise(res=>{
+      $('dlgtitle').textContent=titre; $('dlgtext').textContent=texte||'';
+      const inp=$('dlginput'), bok=$('dlgok');
+      inp.hidden = valeur===undefined; if(valeur!==undefined) inp.value=valeur;
+      bok.textContent=ok||'OK'; bok.classList.toggle('danger', !!danger);
+      const fin=(v)=>{ $('dlgveil').hidden=true; bok.onclick=null; $('dlgcancel').onclick=null; inp.onkeydown=null; res(v); };
+      bok.onclick=()=>fin(valeur===undefined ? true : inp.value);
+      $('dlgcancel').onclick=()=>fin(null);
+      inp.onkeydown=(e)=>{ if(e.key==='Enter') bok.onclick(); else if(e.key==='Escape') fin(null); };
+      $('dlgveil').hidden=false;
+      if(valeur!==undefined){ inp.focus(); inp.select(); } else bok.focus();
+    });
+  }
+  async function renameSession(id){
+    const t=await dialog({titre: kinds[id]==='agent'?'Renommer la mission':'Renommer la conversation', valeur: titles[id]||'', ok:'Renommer'});
+    if(t===null || !t.trim()) return;
+    try{ await invoke('core_session_renommer',{id, titre:t}); }catch(e){ flash('échec : '+e,5000); }
+    await refreshSessions($('sinput').value.trim());
+  }
+  async function deleteSession(id){
+    if(busy){ flash('attends la fin de la réponse',3000); return; }
+    const mission=kinds[id]==='agent';
+    const ok=await dialog({
+      titre: mission?'Supprimer la mission ?':'Supprimer la conversation ?',
+      texte:'« '+(titles[id]||'Conversation')+' » et tous ses messages seront effacés de cette machine. Les fichiers créés restent dans Créations.',
+      ok:'Supprimer', danger:true});
+    if(!ok) return;
+    try{
+      const cur=await invoke('core_session_supprimer',{id});
+      if(id===currentId || cur!==currentId){ currentId=cur; agentDraft=false; const [, h]=await invoke('core_history'); renderHistory(h); }
+      flash(mission?'mission supprimée':'conversation supprimée',3000);
+    }catch(e){ flash('suppression impossible : '+e,6000); }
+    await refreshSessions($('sinput').value.trim()); setTitle(); setPlaceholder(); refreshWaits();
+  }
+  on('row-rename', ()=>{ $('rowmenu').hidden=true; if(rowTarget!==null) renameSession(rowTarget); });
+  on('row-delete', ()=>{ $('rowmenu').hidden=true; if(rowTarget!==null) deleteSession(rowTarget); });
+  on('convmore', e=>{ e.stopPropagation(); toggleMenu('mconv'); });
+  on('conv-rename', ()=>{ closeMenus(); if(!agentDraft) renameSession(currentId); });
+  on('conv-delete', ()=>{ closeMenus(); if(!agentDraft) deleteSession(currentId); });
+  on('conv-resume', async ()=>{
+    closeMenus(); let r=null; try{ r=await invoke('core_resume',{session:currentId}); }catch(e){}
+    await dialog({titre:'Ce que Waly retient du début', texte: r || 'Rien encore : Waly voit toute cette conversation. Au-delà d’une quinzaine de messages, il résume au repos ce qui sort de sa mémoire de travail.', ok:'Fermer'});
+  });
+
+  on('searchbtn', ()=>{ const f=$('sfield'); f.classList.toggle('on'); if(f.classList.contains('on')) $('sinput').focus(); else { $('sinput').value=''; refreshSessions(); } });
+  let deb=null;
+  $('sinput').addEventListener('input', ()=>{ clearTimeout(deb); deb=setTimeout(()=>refreshSessions($('sinput').value.trim()), 200); });
+  $$('[data-fold]').forEach(b=>b.addEventListener('click', ()=>{
+    const l=$(b.dataset.fold); l.hidden=!l.hidden; b.parentElement.classList.toggle('closed', l.hidden);
+    try{ localStorage.setItem('waly-fold-'+b.dataset.fold, l.hidden?'1':''); }catch(e){}
+  }));
+  try{ $$('[data-fold]').forEach(b=>{ if(localStorage.getItem('waly-fold-'+b.dataset.fold)==='1'){ $(b.dataset.fold).hidden=true; b.parentElement.classList.add('closed'); } }); }catch(e){}
+  on('fold', ()=>{ $('shell').classList.add('folded'); $('unfold').hidden=false; });
+  on('unfold', ()=>{ $('shell').classList.remove('folded'); $('unfold').hidden=true; });
+
+  // ── menus ─────────────────────────────────────────────────────────────
+  function closeMenus(){ $$('.menu').forEach(m=>m.hidden=true); }
+  function toggleMenu(id){ const m=$(id), was=m.hidden; closeMenus(); m.hidden=!was; }
+  on('plusbtn', e=>{ e.stopPropagation(); refreshPlus(); toggleMenu('mplus'); });
+  on('tunebtn', e=>{ e.stopPropagation(); toggleMenu('mtune'); });
+  on('modelbtn', e=>{ e.stopPropagation(); toggleMenu('mmodel'); });
+  // Envoyer la conversation à un contact Waly (lot 3) : chiffrée pour lui seul.
+  async function majPartageMenu(){
+    const z=$('sharecontacts'); let p=null; try{ p=await invoke('core_partage'); }catch(e){}
+    const cs=(p&&p.contacts)||[];
+    z.innerHTML='';
+    if(!cs.length){ const d=document.createElement('div'); d.className='mi'; d.dataset.settings='partage'; d.innerHTML='<span>Envoyer à un contact Waly…</span><span class="d">ajouter un contact</span>'; z.appendChild(d); return; }
+    for(const c of cs){
+      const d=document.createElement('div'); d.className='mi'; d.innerHTML='<span></span><span class="d">chiffré</span>'; d.firstChild.textContent='Envoyer à '+c.nom;
+      d.onclick=async()=>{
+        closeMenus();
+        const titre=titles[currentId]||'Conversation', hote=(c.relais.split('//')[1]||c.relais);
+        if(!(await dialog({titre:'Envoyer « '+titre+' » à '+c.nom+' ?', texte:'La conversation telle qu’elle est affichée (fichiers joints compris) est chiffrée sur ta machine pour '+c.nom+' seulement, puis déposée sur son relais ('+hote+'). Le relais ne peut pas la lire.', ok:'Envoyer'}))) return;
+        flash('chiffrement et envoi…');
+        try{ const nom=await invoke('core_partage_envoyer',{contact:c.id, titre}); flash('envoyée à '+nom+' — elle l’attend sur son relais', 6000); }
+        catch(e){ flash('⚠ envoi impossible : '+e, 8000); }
+      };
+      z.appendChild(d);
+    }
+  }
+  on('sharebtn', e=>{ e.stopPropagation(); majPartageMenu(); toggleMenu('mshare'); });
+  document.addEventListener('click', e=>{
+    if(e.target.closest('.menu')){
+      const s=e.target.closest('[data-settings]'); if(s){ closeMenus(); openSettings(s.dataset.settings); }
+      const p=e.target.closest('[data-page-open]'); if(p){ closeMenus(); openPage(p.dataset.pageOpen); }
+      return;
+    }
+    closeMenus();
+  });
+  $$('#mshare [data-export]').forEach(b=>b.addEventListener('click', async ()=>{
+    closeMenus(); flash('export…');
+    try{ const d=await invoke('core_exporter',{format:b.dataset.export, titre:titles[currentId]||'Conversation'}); flash('exporté dans Téléchargements : '+d.split(/[\\/]/).pop(), 6000); }
+    catch(e){ flash('export impossible : '+e, 6000); }
+  }));
+  // Style de réponse : réglage global, le prochain message en tient compte.
+  let styleCourant='normal';
+  function marquerStyle(){ $$('#mtune [data-style]').forEach(x=>{ x.classList.toggle('on', x.dataset.style===styleCourant); const d=x.querySelector('.ck'); if(d) d.remove(); if(x.dataset.style===styleCourant) x.insertAdjacentHTML('afterbegin','<span class="ck">'+ICON.check+'</span>'); }); }
+  async function poserStyle(s){
+    try{ await invoke('core_reglage_set',{cle:'style', valeur:s}); styleCourant=s; marquerStyle(); flash('style : '+({concis:'concis',normal:'normal',detaille:'détaillé'}[s]), 2500); }
+    catch(e){ flash('réglage impossible : '+e, 5000); }
+  }
+  $$('#mtune [data-style]').forEach(b=>b.addEventListener('click', ()=>{ closeMenus(); poserStyle(b.dataset.style); }));
+  // Qui répond (lot 3) : cerveau local, modèle extérieur (ta clé), ou Auto.
+  let cerveau={local:'', locaux:[], exterieurs:[], mode:'local', exterieur_id:null, fournisseurs:[]};
+  const extActif=()=>cerveau.exterieurs.find(e=>e.id===cerveau.exterieur_id)||null;
+  async function majCerveau(){
+    try{ cerveau=await invoke('core_cerveau'); }catch(e){ return; }
+    const x=extActif();
+    $('model').textContent = cerveau.mode==='auto' ? 'Auto' : (cerveau.mode==='exterieur' && x ? x.modele+' ↗' : cerveau.local);
+    $('modelbtn').title = cerveau.mode==='local' ? 'Modèle local' : (cerveau.mode==='auto' ? 'Auto : local d’abord, '+(x?x.modele:'')+' pour le travail de fond' : 'Modèle extérieur — sort vers '+(x?x.hote:''));
+    const m=$('mmodel'); m.innerHTML='';
+    const ligne=(html, on, fn, off)=>{ const d=document.createElement('div'); d.className='mi'+(off?' off':''); d.innerHTML=(on?'<span class="ck">'+ICON.check+'</span>':'')+html; if(on) d.classList.add('on'); if(fn && !off) d.onclick=async()=>{ closeMenus(); await fn(); }; m.appendChild(d); return d; };
+    const titre=(t)=>{ const d=document.createElement('div'); d.className='mh'; d.textContent=t; m.appendChild(d); };
+    const sep=()=>{ const d=document.createElement('div'); d.className='sep'; m.appendChild(d); };
+    titre('Sur cette machine');
+    const locaux = cerveau.locaux.length ? cerveau.locaux : [{nom:cerveau.local, outils:true}];
+    for(const l of locaux){
+      const actif = l.nom===cerveau.local;
+      ligne('<span>'+esc(l.nom)+'</span>'+(l.outils?(actif&&cerveau.mode!=='exterieur'?'<span class="d">en service</span>':''):'<span class="d">sans outils</span>'), actif && cerveau.mode==='local', ()=>choisirCerveau({mode:'local', local:l.nom}), !l.outils);
+    }
+    sep(); titre('Modèles extérieurs · ta clé');
+    for(const e of cerveau.exterieurs){
+      ligne('<span>'+esc(e.modele)+'</span><span class="d">sort vers '+esc(e.hote)+'</span>', cerveau.mode==='exterieur' && e.id===cerveau.exterieur_id, ()=>choisirCerveau({mode:'exterieur', exterieur:e.id}));
+    }
+    if(!cerveau.exterieurs.length){ const d=ligne('<span>Ajouter un modèle extérieur…</span>', false, null); d.dataset.settings='modeles'; }
+    sep();
+    const premier=x||cerveau.exterieurs[0];
+    ligne('<span>Auto — routeur</span><span class="d">'+(premier?'local d’abord':'ajoute un modèle extérieur')+'</span>', cerveau.mode==='auto', ()=>choisirCerveau({mode:'auto', exterieur:premier.id}), !premier);
+    sep();
+    const r=ligne('<span>Modèle et machine…</span>', false, null); r.dataset.settings='modeles';
+    refreshSceau();
+  }
+  async function choisirCerveau(c){
+    if(c.local && c.local!==cerveau.local) flash('changement de modèle… (le premier message le charge)', 6000);
+    try{ await invoke('core_cerveau_choisir', {mode:c.mode, local:c.local||null, exterieur:c.exterieur||null}); }
+    catch(e){ flash('⚠ '+e, 6000); }
+    await majCerveau();
+    if(c.mode==='exterieur'){ const x=extActif(); if(x) flash('les prochains messages sortent vers '+x.hote+' — texte de la conversation seulement', 6000); }
+    else if(c.mode==='auto') flash('Auto : local d’abord ; le travail de fond sur du texte sort vers le modèle extérieur', 6000);
+  }
+  // Réflexion approfondie : réglage global, lu à chaque message.
+  let reflexionOn=false;
+  function marquerReflexion(){ $$('.reflextog').forEach(t=>t.classList.toggle('on', reflexionOn)); }
+  async function poserReflexion(v){
+    try{ await invoke('core_reglage_set',{cle:'reflexion', valeur:v?'oui':'non'}); reflexionOn=v; marquerReflexion(); flash(v?'réflexion approfondie activée — réponses plus lentes':'réflexion approfondie désactivée', 3000); }
+    catch(e){ flash('réglage impossible : '+e, 5000); }
+  }
+  on('tunereflex', ()=>poserReflexion(!reflexionOn));
+  on('copyconv', ()=>{
+    const t=lastHistory.map(([r,c])=>(r==='user'?'Toi : ':'Waly : ')+c).join('\n\n');
+    copyText((titles[currentId]||'Conversation')+'\n\n'+t); closeMenus();
+  });
+
+  // Le « + » : ecran en conversation, « Enregistrer une competence » en mission.
+  let apprises=[], mcp=[], plugs=[];
+  async function refreshPlus(){
+    try{ apprises = await invoke('core_competences') || []; }catch(e){}
+    try{ mcp = await invoke('core_mcp_actifs') || []; }catch(e){}
+    try{ plugs = await invoke('core_plugins') || []; }catch(e){}
+    const mission=enMission();
+    const middle = mission
+      ? '<div class="mi" id="plus-rec">'+ICON.rec+(regardeActif?'Arrêter l’enregistrement':'Enregistrer une compétence')+'<span class="d">Waly te regarde faire</span></div>'
+      : '<div class="mi" id="plus-ecran">'+ICON.screen+(ecranActif?'Arrêter le partage d’écran':'Partager l’écran')+'<span class="d">lu en texte</span></div>';
+    const comps = apprises.length ? apprises.slice(0,8).map(([t,,u])=>'<div class="mi">'+esc(t)+(u>0?'<span class="d">×'+u+'</span>':'')+'</div>').join('') : '<div class="mh">aucune apprise encore</div>';
+    const cons = mcp.length ? mcp.map(s=>'<div class="mi">'+esc(s.nom)+'<span class="d">'+(s.lecture?'lecture':'approbation')+'</span></div>').join('') : '<div class="mh">aucun connecteur</div>';
+    $('mplus').innerHTML =
+      '<div class="mi" id="plus-fichier">'+ICON.clip+'Ajouter un fichier<span class="d">lu sur ta machine</span></div>'+
+      '<div class="mi has">'+ICON.folder+(projetCourant?'Projet : '+esc(projetCourant.nom):'Ajouter à un projet')+'<span class="ar">'+ICON.right+'</span><div class="sub" id="plus-projets"><div class="mh">chargement…</div></div></div>'+
+      middle+'<div class="sep"></div>'+
+      '<div class="mi has">'+ICON.spark+'Compétences<span class="ar">'+ICON.right+'</span><div class="sub">'+comps+'<div class="sep"></div><div class="mi" data-page-open="personnaliser">Gérer les compétences</div></div></div>'+
+      '<div class="mi has">'+ICON.plug+'Connecteurs<span class="ar">'+ICON.right+'</span><div class="sub">'+cons+'<div class="sep"></div><div class="mi" data-page-open="personnaliser:connecteurs">Gérer les connecteurs</div></div></div>'+
+      '<div class="mi has">'+ICON.box+'Plugins<span class="ar">'+ICON.right+'</span><div class="sub">'+(plugs.length?plugs.map(p=>'<div class="mi">'+esc(p.nom)+'<span class="d">'+(p.actif?p.competences.length+' comp.':'désactivé')+'</span></div>').join(''):'<div class="mh">aucun plugin installé</div>')+'<div class="sep"></div><div class="mi" data-page-open="personnaliser:plugins">Voir les plugins</div></div></div>';
+    const e=$('plus-ecran'); if(e) e.onclick=(ev)=>{ ev.stopPropagation(); closeMenus(); ecranActif?stopEcran():startEcran(); };
+    const r=$('plus-rec'); if(r) r.onclick=(ev)=>{ ev.stopPropagation(); closeMenus(); regardeActif?stopRegarde():startRegarde(); };
+    $('plus-fichier').onclick=(ev)=>{ ev.stopPropagation(); closeMenus(); joindreFichier(); };
+    remplirMenuProjets();
+  }
+  // Sous-menu du + : ranger la conversation ouverte (ou la mission à venir).
+  async function remplirMenuProjets(){
+    const box=$('plus-projets'); if(!box) return;
+    let ps=[]; try{ ps=(await invoke('core_projets')||[]).filter(p=>!p.archive); }catch(e){}
+    const cur=projetCourant?projetCourant.id:null;
+    box.innerHTML=ps.map(p=>'<div class="mi" data-pr="'+p.id+'">'+esc(p.nom)+(p.id===cur?'<span class="d">✓</span>':'')+'</div>').join('')+
+      (ps.length?'<div class="sep"></div>':'')+
+      (cur?'<div class="mi" data-pr="">Sortir du projet</div>':'')+
+      '<div class="mi" data-pr="nouveau">Nouveau projet…</div>';
+    $$('[data-pr]',box).forEach(b=>b.onclick=async(ev)=>{
+      ev.stopPropagation(); closeMenus();
+      let pid=b.dataset.pr==='' ? null : (b.dataset.pr==='nouveau' ? await nouveauProjet() : +b.dataset.pr);
+      if(b.dataset.pr==='nouveau' && !pid) return;
+      if(agentDraft){ projetPourMission=pid; await refreshProjetTitre(); flash(pid?'la mission sera rangée dans le projet':'la mission ne sera rangée dans aucun projet',3000); refreshPlus(); return; }
+      try{ await invoke('core_session_projet',{session:currentId, projet:pid}); flash(pid?'conversation rangée dans le projet':'conversation sortie du projet',3000); }catch(e){ flash('⚠ '+e,5000); }
+      await refreshProjetTitre(); refreshPlus(); refreshSessions();
+    });
+  }
+  on('ptag', ()=>{ if(projetCourant) openPage('projets:'+projetCourant.id); });
+
+  // ── fichiers joints au message (lus en local, jamais envoyés ailleurs) ─
+  let joints=[]; // {nom, genre:'texte'|'image', texte?, data_url?}
+  async function joindreFichier(){
+    let chemin=null; try{ chemin=await invoke('core_fichier_choisir'); }catch(e){}
+    if(!chemin) return;
+    const nom=chemin.split(/[\\/]/).pop();
+    flash(/\.pdf$/i.test(nom)?'lecture du PDF (texte reconnu en local)…':'lecture de '+nom+'…');
+    try{
+      const f=await invoke('core_fichier_lire',{chemin});
+      if(f.genre==='image') joints=joints.filter(j=>j.genre!=='image'); // une image vivante à la fois
+      joints.push(f); renderChips();
+      flash(f.tronque?nom+' : trop long, début seulement joint':(f.note||''), f.tronque||f.note?5000:1);
+      majBouton(); input.focus();
+    }catch(e){ flash('fichier illisible : '+e, 6000); }
+  }
+  // Le message part avec le texte des fichiers ; l'écran n'en montre que le nom.
+  function composer(texte){
+    let m=texte;
+    for(const j of joints){
+      // Formulation vécue (2026-09-30) : « Fichier joint : x » poussait le 4B
+      // à rouvrir x avec lire_fichier (introuvable) au lieu de lire le texte.
+      if(j.genre==='texte') m+='\n\n--- Contenu du fichier joint : '+j.nom+' --- (deja lu pour toi : reponds d\'apres ce texte, n\'ouvre pas le fichier avec un outil)\n'+j.texte+(j.tronque?'\n[… tronqué]':'')+'\n--- fin du fichier ---';
+      else m+='\n\n[Image jointe : '+j.nom+']';
+    }
+    return m;
+  }
+  function sansJoints(t){
+    return String(t).replace(/\n\n--- Contenu du fichier joint : (.+?) ---.*\n[\s\S]*?\n--- fin du fichier ---/g,'\n📎 $1').replace(/\n\n\[Image jointe : (.+?)\]/g,'\n🖼 $1');
+  }
+
+  // ── puces de la saisie (ecran partage / regarde-moi) ──────────────────
+  let ecranActif=false, regardeActif=false;
+  function renderChips(){
+    const c=$('chips'); c.innerHTML='';
+    const chip=(txt, stop)=>{ const d=document.createElement('div'); d.className='pchip'; d.innerHTML='<span class="lv"></span><span></span><button class="x" title="Arrêter">'+ICON.x+'</button>'; d.children[1].textContent=txt; d.querySelector('.x').onclick=stop; c.appendChild(d); };
+    joints.forEach((j,i)=>chip((j.genre==='image'?'🖼 ':'📎 ')+j.nom, ()=>{ joints.splice(i,1); renderChips(); majBouton(); }));
+    c.querySelectorAll('.pchip .lv').forEach((lv,i)=>{ if(i<joints.length) lv.remove(); });
+    if(ecranActif) chip('Écran partagé · lu en texte', stopEcran);
+    if(regardeActif) chip('Waly te regarde faire · étapes en texte, jamais d’image', stopRegarde);
+    if(dicteeEtat==='ecoute') chip('Micro allumé · dicte, puis ◼ pour insérer le texte', annulerDictee);
+    if(dicteeEtat==='transcription'){ const d=document.createElement('div'); d.className='pchip'; d.textContent='Transcription locale…'; c.appendChild(d); }
+  }
+  async function startEcran(){
+    flash('ouverture du partage d’écran…');
+    try{ const etat=await invoke('core_ecran_start'); ecranActif=true; renderChips(); flash(etat,4000); }
+    catch(e){ flash('écran indisponible : '+e, 6000); }
+  }
+  async function stopEcran(){ try{ await invoke('core_ecran_stop'); }catch(e){} ecranActif=false; renderChips(); }
+  // Arrêt depuis le pop-up (Stop) : le cœur prévient, la puce s'éteint.
+  if(T && T.event) T.event.listen('ecran-arrete', ()=>{ ecranActif=false; renderChips(); });
+  async function startRegarde(){
+    try{ await invoke('core_regarde_start'); regardeActif=true; renderChips(); flash('montre la tâche, puis arrête l’enregistrement', 5000); }
+    catch(e){ flash('enregistrement indisponible : '+e, 6000); }
+  }
+  async function stopRegarde(){
+    let etapes=[]; try{ etapes=await invoke('core_regarde_stop') || []; }catch(e){}
+    regardeActif=false; renderChips();
+    if(homeMode) setHome(false);
+    if(!etapes.length){ addWaly('Je n’ai vu aucun clic ni raccourci hors de Waly.'); return; }
+    addWaly('Voici ce que j’ai vu ('+etapes.length+' étapes). J’en tire une compétence en fond ; redemande-moi la tâche en mission et je la referai avec toi, chaque geste approuvé.');
+    for(const s of etapes) addStep('vu', s);
+  }
+
+  // ── approbations (missions) ───────────────────────────────────────────
+  async function refreshWaits(){
+    let list=[]; try{ list = await invoke('core_pendings'); }catch(e){}
+    const box=$('waits'); box.innerHTML='';
+    for(const [id, name, args] of list){
+      let libelle=null; try{ const a=JSON.parse(args); if(a && typeof a.libelle==='string') libelle=a.libelle; }catch(e){}
+      const el=document.createElement('div'); el.className='appro';
+      el.innerHTML='<span class="ai">'+ICON.hand+'</span><div class="mw0"><div class="al"></div><div class="aa"></div><div class="aw"></div></div><div class="ab"><button class="bt no">Refuser</button><button class="bt solid ok">Approuver</button></div>';
+      el.querySelector('.al').textContent='Waly demande à · #'+id;
+      el.querySelector('.aa').textContent=libelle||name;
+      el.querySelector('.aw').textContent=libelle?name:args;
+      el.querySelector('.ok').onclick=()=>decide(id,true);
+      el.querySelector('.no').onclick=()=>decide(id,false);
+      box.appendChild(el);
+    }
+  }
+  async function decide(id, approve){
+    if(busy) return;
+    setBusy(true); flash(approve?'exécution…':'annulation…');
+    if(homeMode) setHome(false);
+    let pending=null, acc='';
+    const chan=new T.core.Channel();
+    chan.onmessage=(m)=>{
+      if(m.type==='delta'){ if(!pending){ pending=addWaly(''); mstate.textContent=''; } acc+=m.text; pending.querySelector('.body').textContent=acc; autoscroll(); }
+      else if(m.type==='tool'){ addStep(m.name, m.info); flash('outil : '+m.name+'…'); }
+      else if(m.type==='fichier'){ col.appendChild(fileCard(m.chemin)); autoscroll(); openViewer(m.chemin); }
+    };
+    try{
+      const out=await invoke('core_approve',{id, approve, chan});
+      if(pending){ pending.querySelector('.body').innerHTML=md(out); pending.dataset.raw=out; }
+      else { addStep(approve?'approuvé':'refusé', out); if(approve) maybeFileCard(out); }
+    }catch(e){ addWaly('(décision non appliquée : '+e+')', true); }
+    finally{ setBusy(false); mstate.textContent=''; refreshWaits(); refreshSessions($('sinput').value.trim()); }
+  }
+
+  // ── envoi (tour normal OU demarrage de mission) ───────────────────────
+  // Le bouton d'envoi est d'abord un MICRO de dictee (comme Claude) : saisie
+  // vide -> dicter ; texte -> envoyer ; reponse en cours -> arreter.
+  const B_STOP='<svg class="i" viewBox="0 0 16 16"><rect x="4.5" y="4.5" width="7" height="7" rx="1.2" fill="currentColor"/></svg>';
+  const B_ENVOI='<svg class="i" viewBox="0 0 16 16"><path d="M8 13V3M4 7l4-4 4 4"/></svg>';
+  const B_MICRO='<svg class="i" viewBox="0 0 16 16"><rect x="6" y="2" width="4" height="8" rx="2"/><path d="M3.5 8a4.5 4.5 0 009 0M8 12.5V14"/></svg>';
+  let dicteeEtat=null; // null | 'demarrage' | 'ecoute' | 'transcription'
+  function majBouton(){
+    sendBtn.classList.toggle('rec', dicteeEtat==='ecoute');
+    sendBtn.disabled = dicteeEtat==='demarrage' || dicteeEtat==='transcription';
+    if(busy){ sendBtn.innerHTML=B_STOP; sendBtn.title='Arrêter'; return; }
+    if(dicteeEtat==='ecoute'){ sendBtn.innerHTML=B_STOP; sendBtn.title='Terminer la dictée et insérer le texte'; return; }
+    if(dicteeEtat){ sendBtn.innerHTML=B_MICRO; sendBtn.title='…'; return; }
+    const plein=input.value.trim().length>0 || joints.length>0;
+    sendBtn.innerHTML = plein ? B_ENVOI : B_MICRO;
+    sendBtn.title = plein ? 'Envoyer' : 'Dicter (le micro s’allume jusqu’à ce que tu arrêtes)';
+  }
+  function setBusy(b){ busy=b; majBouton(); }
+  async function startDictee(){
+    if(appelActif || voixActif){ flash('le micro est déjà utilisé par l’appel', 4000); return; }
+    dicteeEtat='demarrage'; majBouton(); flash('ouverture du micro…');
+    try{ await invoke('core_dictee_start'); dicteeEtat='ecoute'; mstate.textContent=''; }
+    catch(e){ dicteeEtat=null; flash('dictée indisponible : '+e, 6000); }
+    renderChips(); majBouton();
+  }
+  async function stopDictee(){
+    dicteeEtat='transcription'; renderChips(); majBouton();
+    try{
+      const t=await invoke('core_dictee_stop');
+      if(t){ const v=input.value; input.value=v+(v && !/\s$/.test(v)?' ':'')+t; input.dispatchEvent(new Event('input')); input.focus(); }
+      else flash('rien entendu', 3000);
+    }catch(e){ flash('dictée : '+e, 6000); }
+    dicteeEtat=null; renderChips(); majBouton();
+  }
+  async function annulerDictee(){
+    try{ await invoke('core_dictee_annuler'); }catch(e){}
+    dicteeEtat=null; renderChips(); majBouton();
+  }
+  async function send(){
+    if(busy){ invoke('core_stop').catch(()=>{}); return; }
+    if(dicteeEtat==='ecoute'){ stopDictee(); return; }
+    if(dicteeEtat) return;
+    let text=input.value.trim();
+    if(!text && !joints.length){ startDictee(); return; }
+    if(!text) text = joints.some(j=>j.genre==='image') ? 'Regarde cette image.' : 'Lis ce fichier et dis-moi ce qu’il contient.';
+    const starting=agentDraft;
+    const image=(joints.find(j=>j.genre==='image')||{}).data_url||null;
+    if(starting && image){ flash('une mission ne regarde pas encore les images : envoie-la en conversation', 6000); return; }
+    // Un fichier joint ne part vers un modèle extérieur qu'avec ton accord, pour CE message.
+    let fichiers=false;
+    if(!starting && cerveau.mode==='exterieur' && joints.some(j=>j.genre==='texte')){
+      const x=extActif();
+      fichiers = !!(await dialog({titre:'Envoyer le fichier à '+(x?x.modele:'ce modèle')+' ?', texte:'Le contenu du fichier joint sortirait de ta machine vers '+(x?x.hote:'le fournisseur')+'. « Annuler » : le message part sans le fichier, qui reste sur ta machine.', ok:'Envoyer le fichier'}));
+    }
+    text=composer(text); joints=[]; renderChips();
+    setHome(false); setBusy(true);
+    addYou(text); lastHistory.push(['user',text]);
+    input.value=''; input.style.height='auto';
+    const pending=addWaly(''); const p=pending.querySelector('.body'); p.classList.add('dots');
+    flash(starting?'la mission démarre…':'réflexion…');
+    let acc='', note='', think='', thinkT0=0, route=null;
+    const chan=new T.core.Channel();
+    chan.onmessage=(m)=>{
+      if(m.type==='route'){ route=m; if(m.cible==='exterieur') flash('sortie vers '+m.hote+'…'); return; }
+      if(m.type==='reflexion'){ if(!think){ thinkT0=Date.now(); flash('réflexion approfondie…'); } think+=m.text; setThink(pending, think, true); autoscroll(); return; }
+      if(m.type==='delta' && think && !acc){ setThink(pending, think, false, 'Réflexion · '+Math.max(1,Math.round((Date.now()-thinkT0)/1000))+' s'); }
+      if(m.type==='session' && projetPourMission){ projetPourMission=null; setTimeout(refreshProjetTitre,0); } // rangée par le cœur avant le 1er tour
+      if(m.type==='session'){ currentId=m.id; agentDraft=false; setPlaceholder(); refreshSessions(); refreshPlus(); }
+      else if(m.type==='delta'){ if(!acc){ p.classList.remove('dots'); mstate.textContent=''; } acc+=m.text; p.textContent=acc; autoscroll(); }
+      else if(m.type==='tool'){ col.insertBefore(addStep(m.name, m.info), pending); flash('outil : '+m.name+'…'); }
+      else if(m.type==='fichier'){ col.insertBefore(fileCard(m.chemin), pending); autoscroll(); openViewer(m.chemin); }
+      else if(m.type==='done'){ if(m.interrupted) note='interrompu'; else if(m.truncated) note='réponse peut-être coupée'; }
+    };
+    try{
+      const reply=await invoke(starting?'core_agent_start':'core_send', starting?{goal:text, projet:projetPourMission, chan}:{message:text, image, fichiers, chan});
+      if(!reply){ pending.remove(); }
+      else{
+        p.classList.remove('dots'); p.innerHTML=md(reply); pending.dataset.raw=reply; lastHistory.push(['assistant',reply]);
+        if(route){ const s=document.createElement('div'); s.className='note'; s.textContent = route.cible==='exterieur' ? 'via '+route.modele+' · sorti vers '+route.hote+(cerveau.mode==='auto'?' (Auto : '+route.raison+')':'') : 'modèle local · '+route.raison; pending.querySelector('.wb').appendChild(s); }
+        if(note){ const s=document.createElement('div'); s.className='note'; s.textContent=note; pending.querySelector('.wb').appendChild(s); }
+      }
+      refreshSessions($('sinput').value.trim()); refreshWaits();
+    }catch(e){
+      pending.classList.add('err'); p.classList.remove('dots');
+      p.textContent='('+(e && e.toString ? e.toString() : e)+') — le moteur local tourne-t-il ? Ouvre Ollama, ou lance engines/start-flm.ps1.';
+    }finally{ setBusy(false); mstate.textContent=''; autoscroll(); input.focus(); }
+  }
+  sendBtn.addEventListener('click', send);
+  input.addEventListener('keydown', e=>{ if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); send(); } });
+  input.addEventListener('input', ()=>{ input.style.height='auto'; input.style.height=Math.min(180,input.scrollHeight)+'px'; majBouton(); });
+
+  // ── visionneuse : les creations s'ouvrent DANS l'app ──────────────────
+  let viewerPath=null;
+  const TYPES={texte:'Texte',markdown:'Markdown',html:'Page HTML',tableau:'Tableau',document:'Document',diapos:'Présentation',image:'Image',pdf:'PDF',inconnu:'Fichier'};
+  function closeViewer(){ $('viewer').hidden=true; viewerPath=null; }
+  async function openViewer(chemin){
+    viewerPath=chemin;
+    // Conversation : on telecharge une copie (comme Claude). Mission : le
+    // fichier vit dans le dossier pointe, on l'y montre.
+    $('vexplorer').textContent = enMission() ? 'Afficher dans le dossier' : 'Télécharger';
+    $('vname').textContent=chemin.split(/[\\/]/).pop(); $('vtype').textContent='…';
+    const b=$('vbody'); b.innerHTML='<div class="fine">ouverture…</div>';
+    $('viewer').hidden=false;
+    const note=(t)=>{ const d=document.createElement('div'); d.className='fine'; d.textContent=t; b.appendChild(d); };
+    let a;
+    try{ a=await invoke('core_apercu',{chemin}); }
+    catch(e){ if(viewerPath!==chemin) return; $('vtype').textContent='Fichier'; b.innerHTML=''; note(String(e)); return; }
+    if(viewerPath!==chemin) return;
+    $('vtype').textContent=TYPES[a.type]||'Fichier';
+    b.innerHTML='';
+    if(a.type==='markdown'){ const d=document.createElement('div'); d.className='vdoc body html'; d.innerHTML=md(a.contenu); b.appendChild(d); }
+    else if(a.type==='html'){
+      // Rendu reel de la page, isole : sandbox sans scripts ni formulaires,
+      // rien ne se charge depuis internet (CSP de l'app + reseau scelle).
+      const f=document.createElement('iframe'); f.className='vframe';
+      f.setAttribute('sandbox',''); f.setAttribute('referrerpolicy','no-referrer'); f.title='Aperçu de la page';
+      f.srcdoc=a.contenu; b.appendChild(f);
+      note('Aperçu de la page : scripts désactivés, rien n’est chargé depuis internet.');
+    }
+    else if(a.type==='texte'){
+      const p=document.createElement('pre'); p.className='vpre'; p.textContent=a.contenu; b.appendChild(p);
+    }
+    else if(a.type==='tableau'){ renderSheets(b, a.feuilles||[]); }
+    else if(a.type==='document'){
+      const d=document.createElement('div'); d.className='vdoc'; let ul=null;
+      for(const x of (a.blocs||[])){
+        if(x.genre==='tableau'){
+          ul=null; const z=document.createElement('div'); z.className='vtable'; const t=document.createElement('table');
+          (x.lignes||[]).forEach((l,i)=>{ const tr=document.createElement('tr'); l.forEach(c=>{ const td=document.createElement(i===0?'th':'td'); td.textContent=c; tr.appendChild(td); }); t.appendChild(tr); });
+          z.appendChild(t); d.appendChild(z); continue;
+        }
+        if(x.genre==='puce'){ if(!ul){ ul=document.createElement('ul'); d.appendChild(ul); } const li=document.createElement('li'); li.textContent=x.texte; ul.appendChild(li); continue; }
+        ul=null; const e=document.createElement({titre1:'h1',titre2:'h2',titre3:'h3'}[x.genre]||'p'); e.textContent=x.texte; d.appendChild(e);
+      }
+      b.appendChild(d); if(!(a.blocs||[]).length) note('Document vide.');
+    }
+    else if(a.type==='diapos'){
+      const w=document.createElement('div'); w.className='vslides';
+      for(const s of (a.diapos||[])){
+        const c=document.createElement('div'); c.className='vslide';
+        (s.textes||[]).forEach((t,i)=>{ const e=document.createElement('div'); e.className=i===0?'t0':'tx'; e.textContent=t; c.appendChild(e); });
+        const n=document.createElement('span'); n.className='no'; n.textContent=s.numero; c.appendChild(n); w.appendChild(c);
+      }
+      b.appendChild(w);
+    }
+    else if(a.type==='image'){ const i=document.createElement('img'); i.className='vimg'; i.alt=''; i.src=a.data_url; b.appendChild(i); }
+    else if(a.type==='pdf'){
+      const w=document.createElement('div'); w.className='vpages';
+      for(const src of (a.pages||[])){ const i=document.createElement('img'); i.alt=''; i.src=src; w.appendChild(i); }
+      b.appendChild(w); if(a.total>(a.pages||[]).length) note((a.pages||[]).length+' pages affichées sur '+a.total+'.');
+    }
+    else { note(a.message||'Aperçu indisponible pour ce type de fichier.'); }
+    if(a.tronque) note('Aperçu tronqué : « Afficher dans l’Explorateur » pour tout voir.');
+  }
+  function colName(c){ let s=''; c++; while(c>0){ const m=(c-1)%26; s=String.fromCharCode(65+m)+s; c=Math.floor((c-1)/26); } return s; }
+  function renderSheets(b, feuilles){
+    if(!feuilles.length){ b.innerHTML='<div class="fine">Tableau vide.</div>'; return; }
+    const tabs=document.createElement('div'); tabs.className='seg'; const zone=document.createElement('div'); zone.className='vtable';
+    const show=(k)=>{
+      $$('button',tabs).forEach((x,j)=>x.classList.toggle('on',j===k));
+      const f=feuilles[k], t=document.createElement('table');
+      const cols=f.lignes.reduce((m,l)=>Math.max(m,l.length),0);
+      const hr=document.createElement('tr'); hr.appendChild(document.createElement('th'));
+      for(let c=0;c<cols;c++){ const th=document.createElement('th'); th.textContent=colName(c); hr.appendChild(th); }
+      t.appendChild(hr);
+      f.lignes.forEach((l,i)=>{ const tr=document.createElement('tr'); const n=document.createElement('td'); n.className='num'; n.textContent=i+1; tr.appendChild(n);
+        for(let c=0;c<cols;c++){ const td=document.createElement('td'); td.textContent=l[c]||''; tr.appendChild(td); } t.appendChild(tr); });
+      zone.innerHTML=''; zone.appendChild(t);
+    };
+    feuilles.forEach((f,k)=>{ const bt=document.createElement('button'); bt.textContent=f.nom; bt.onclick=()=>show(k); tabs.appendChild(bt); });
+    if(feuilles.length>1) b.appendChild(tabs);
+    b.appendChild(zone); show(0);
+  }
+  on('vclose', closeViewer);
+  on('vexplorer', async ()=>{
+    if(!viewerPath) return;
+    if(enMission()){ invoke('core_ouvrir_fichier',{chemin:viewerPath}).catch(()=>{}); return; }
+    try{ const d=await invoke('core_telecharger',{chemin:viewerPath}); flash('copié dans Téléchargements : '+d.split(/[\\/]/).pop(), 5000); }
+    catch(e){ flash('téléchargement impossible : '+e, 6000); }
+  });
+
+  // ── pages ─────────────────────────────────────────────────────────────
+  let pageOpen=null;
+  const page=$('page');
+  function markNav(key){ $$('.side .ni[data-page]').forEach(n=>n.classList.toggle('on', n.dataset.page===key)); }
+  function closePage(){
+    if(!pageOpen) return;
+    pageOpen=null; markNav(null);
+    $('v-page').hidden=true; $('v-settings').hidden=true; $('v-chat').hidden=false;
+  }
+  function showPage(key){
+    pageOpen=key; markNav(key); closeMenus();
+    $('v-chat').hidden=true; $('v-settings').hidden=key!=='parametres'; $('v-page').hidden=key==='parametres';
+    $$('.ri.on').forEach(r=>r.classList.remove('on'));
+  }
+  function openPage(spec){
+    const [key, sub]=spec.split(':');
+    if(key==='parametres') return openSettings(sub||'general');
+    showPage(key);
+    ({personnaliser:()=>renderPersonnaliser(sub||'competences'), projets:()=>renderProjets(sub), creations:renderCreations, programme:renderProgramme}[key])();
+  }
+  $$('.side .ni[data-page]').forEach(n=>n.addEventListener('click', ()=>{ if(pageOpen===n.dataset.page) closePage(); else openPage(n.dataset.page); }));
+  on('me', ()=>{ if(pageOpen==='parametres') closePage(); else openSettings('general'); });
+  const H=(t)=>'<div class="ptitle"><h2 class="serif">'+t+'</h2><span class="g"></span></div>';
+
+  // Passerelles de messagerie (lot 3) : Telegram, appairé par code.
+  let psPoll=null;
+  async function majPasserelles(){
+    const z=$('pszone'); if(!z) return;
+    let r={passerelles:[]}; try{ r=await invoke('core_passerelles'); }catch(e){}
+    if(!$('pszone')) return;
+    const p=r.passerelles.find(x=>x.genre==='telegram');
+    let h='';
+    if(!p){
+      h='<div class="row"><span class="ri2">Te</span><div class="mw0"><div class="n">Telegram</div><div class="d">Crée un bot avec @BotFather dans Telegram, puis colle ici le jeton qu’il te donne. Il est chiffré par Windows et ne quitte cette machine que vers Telegram.</div>'+
+        '<div class="field"><input id="psjeton" type="password" autocomplete="off" placeholder="Jeton du bot (123456:ABC…)" maxlength="130"><div><button class="bt solid small" id="psadd">Connecter</button> <span class="fine" id="psout"></span></div></div></div></div>';
+    } else {
+      const ferme = !p.interlocuteur && p.essais>=r.essais_max;
+      const etat = p.interlocuteur ? 'Appairé avec le téléphone de <b>'+esc(p.nom||'ton téléphone')+'</b>. Écris à @'+esc(p.bot)+' : Waly répond dans la conversation « Téléphone · Telegram ».'
+        : (ferme ? '<span class="warn">Appairage fermé après '+p.essais+' codes faux.</span> Génère un nouveau code.'
+          : 'En attente d’appairage : depuis ton téléphone, envoie le code <b class="mono">'+esc(p.code)+'</b> à @'+esc(p.bot)+'. Personne d’autre ne peut parler à Waly.');
+      h='<div class="row"><span class="ri2">Te</span><div class="mw0"><div class="n">Telegram <span class="tag">@'+esc(p.bot)+'</span><span class="tag">sortie ouverte</span></div><div class="d">'+etat+(r.erreur?' <span class="warn">⚠ '+esc(r.erreur)+'</span>':'')+'</div></div>'+
+        '<div class="r"><button class="bt small" id="psrepair">'+(p.interlocuteur?'Changer de téléphone':'Nouveau code')+'</button><button class="bt small danger" id="psdel">Couper</button></div></div>';
+    }
+    z.innerHTML=h;
+    if(!p){
+      $('psadd').onclick=async()=>{ const o=$('psout'); o.textContent='vérification du jeton auprès de Telegram…'; try{ await invoke('core_passerelle_connecter',{baseUrl:null, jeton:$('psjeton').value.trim()}); majPasserelles(); refreshSceau(); }catch(e){ o.textContent='⚠ '+e; } };
+    } else {
+      $('psrepair').onclick=async()=>{ try{ await invoke('core_passerelle_reappairer',{id:p.id}); }catch(e){ flash('⚠ '+e,5000); } majPasserelles(); };
+      $('psdel').onclick=async()=>{ if(!(await dialog({titre:'Couper la passerelle Telegram ?', texte:'Le jeton est effacé de cette machine ; ton téléphone ne pourra plus écrire à Waly.', ok:'Couper', danger:true}))) return; try{ await invoke('core_passerelle_retirer',{id:p.id}); }catch(e){ flash('⚠ '+e,5000); } majPasserelles(); refreshSceau(); };
+    }
+    clearTimeout(psPoll);
+    if(p && !p.interlocuteur) psPoll=setTimeout(majPasserelles, 3000);
+  }
+  async function renderPersonnaliser(tab){
+    page.innerHTML='<div class="pw">'+H('Personnaliser')+'<div class="ptabs" id="ptabs"><button data-p="competences">Compétences</button><button data-p="connecteurs">Connecteurs</button><button data-p="plugins">Plugins</button></div><div id="pbody" class="rows"></div></div>';
+    $$('#ptabs button').forEach(b=>{ b.classList.toggle('on', b.dataset.p===tab); b.onclick=()=>renderPersonnaliser(b.dataset.p); });
+    const box=$('pbody');
+    if(tab==='competences'){
+      let a=[], s=[]; try{ a=await invoke('core_competences_detail')||[]; }catch(e){} try{ s=await invoke('core_skills')||[]; }catch(e){}
+      box.innerHTML='<div class="sect">Apprises — en mission ou en te regardant</div>'+
+        '<div class="hint">'+ICON.spark+'<span>Après une mission réussie qui a suivi une compétence, Waly la relit et la réécrit si l’usage a révélé mieux. Chaque version est gardée : tu peux revenir en arrière.</span></div>'+
+        '<div id="clist"></div>'+
+        '<div class="sect">Intégrées — ce que Waly sait faire</div>'+
+        s.map(([n,d])=>'<div class="row"><span class="ri2">'+ICON.box+'</span><div><div class="n mono s13">'+esc(n)+'</div><div class="d">'+esc(d)+'</div></div><div class="r"></div></div>').join('');
+      const cl=$('clist');
+      if(!a.length) cl.innerHTML='<div class="empty">Aucune compétence apprise pour l’instant.<span class="fine">Confie une mission, ou « Enregistrer une compétence » dans le + d’une mission.</span></div>';
+      for(const c of a){
+        const el=document.createElement('div'); el.className='row';
+        el.innerHTML='<span class="ri2">'+ICON.spark+'</span><div class="mw0"><div class="n"><span class="t"></span><span class="tag">v'+c.version+'</span>'+(String(c.key).startsWith('plugin:')?'<span class="tag">plugin</span>':'')+(c.uses>0?'<span class="tag">utilisée '+c.uses+' fois</span>':'')+'</div><div class="d"></div><div class="hist"></div></div><div class="r"></div>';
+        el.querySelector('.t').textContent=c.titre; el.querySelector('.d').textContent=c.recette;
+        const r=el.querySelector('.r'), hist=el.querySelector('.hist');
+        if(c.version>1){ const h=document.createElement('button'); h.className='bt small'; h.textContent='Historique'; r.appendChild(h);
+          h.onclick=async()=>{
+            if(hist.childElementCount){ hist.innerHTML=''; return; }
+            let vs=[]; try{ vs=await invoke('core_competence_versions',{key:c.key})||[]; }catch(e){}
+            for(const v of vs){ const d=document.createElement('div'); d.className='vrow';
+              d.innerHTML='<div class="fine"></div><div class="d"></div><button class="bt small">Revenir à cette version</button>';
+              d.querySelector('.fine').textContent='v'+v.version+' · '+String(v.created_at).slice(0,16)+(v.raison?' · remplacée : '+v.raison:'');
+              d.querySelector('.d').textContent=v.recette;
+              d.querySelector('button').onclick=async()=>{ try{ await invoke('core_competence_restaurer',{key:c.key, version:v.version}); flash('version '+v.version+' restaurée',3000); }catch(e){ flash('⚠ '+e,5000); } renderPersonnaliser('competences'); };
+              hist.appendChild(d); }
+          }; }
+        const del=document.createElement('button'); del.className='bt small danger'; del.textContent='Supprimer'; r.appendChild(del);
+        del.onclick=async()=>{ const ok=await dialog({titre:'Supprimer la compétence ?', texte:'« '+c.titre+' » et toutes ses versions seront oubliées.', ok:'Supprimer', danger:true}); if(!ok) return;
+          try{ await invoke('core_competence_supprimer',{key:c.key}); }catch(e){} renderPersonnaliser('competences'); };
+        cl.appendChild(el);
+      }
+    } else if(tab==='connecteurs'){
+      let m=[]; try{ m=await invoke('core_mcp_actifs')||[]; }catch(e){}
+      box.innerHTML='<div class="sect">Sur cette machine (MCP)</div>'+
+        '<div class="hint">'+ICON.shield+'<span>Les connecteurs sont des programmes que tu déclares dans <span class="mono">data\\waly.toml</span>. Ils tournent hors du scellé réseau : chaque appel te sera demandé, sauf confiance en lecture.</span></div>'+
+        (m.length ? m.map(s=>'<div class="row"><span class="ri2">'+ICON.plug+'</span><div><div class="n">'+esc(s.nom)+'<span class="tag">'+(s.lecture?'lecture seule':'approbation à chaque appel')+'</span></div><div class="d">'+esc(s.programme)+' · '+s.outils.length+' outil(s)</div></div><div class="r">connecté</div></div>').join('')
+          : '<div class="empty">Aucun connecteur déclaré.</div>')+
+        '<div class="sect">Passerelles de messagerie</div>'+
+        '<div class="hint">'+ICON.shield+'<span>Parler à Waly depuis ton téléphone, tant que l’app est ouverte. Waly reste scellé : les messages passent par un programme séparé, vers le seul service choisi, et chaque message est inscrit dans Vie privée. Il ne répond qu’au téléphone que tu appaires avec un code ; c’est le modèle local qui répond, et toute action qui demande ton accord t’attend ici. À savoir : un message Telegram transite par les serveurs de Telegram.</span></div>'+
+        '<div id="pszone"><div class="fine">lecture…</div></div>'+
+        ['Matrix (ton serveur)','Signal','WhatsApp','Discord · Slack'].map(n=>'<div class="row"><span class="ri2">'+esc(n.slice(0,2))+'</span><div><div class="n">'+esc(n)+' <span class="soon">bientôt</span></div></div></div>').join('');
+      majPasserelles();
+    } else {
+      let pl=[]; try{ pl=await invoke('core_plugins')||[]; }catch(e){}
+      box.innerHTML='<div class="hint">'+ICON.box+'<span>Un plugin est un dossier (fichier <span class="mono">waly-plugin.toml</span>) qui apporte des compétences et des connecteurs prêts à l’emploi. Tu l’installes toi-même, jamais en arrière-plan ; ses connecteurs demandent ton accord à chaque appel. Installation depuis un dépôt en ligne : avec l’accès réseau (plus tard).</span></div>'+
+        '<div class="scact"><button class="bt solid small" id="plinst">+ Installer depuis un dossier…</button><span class="fine" id="plout"></span></div><div id="pllist"></div>';
+      const L=$('pllist');
+      if(!pl.length) L.innerHTML='<div class="empty">Aucun plugin installé.<span class="fine">Un exemple est fourni dans le dossier plugins\\exemple-redaction de Waly.</span></div>';
+      for(const p of pl){
+        const el=document.createElement('div'); el.className='row';
+        el.innerHTML='<span class="ri2">'+ICON.box+'</span><div class="mw0"><div class="n"><span class="t"></span>'+(p.version?'<span class="tag">v'+esc(p.version)+'</span>':'')+(p.actif?'':'<span class="tag">désactivé</span>')+'</div><div class="d"></div></div><div class="r"><span class="tog'+(p.actif?' on':'')+'" title="Activer / désactiver"></span><button class="bt small danger">Désinstaller</button></div>';
+        el.querySelector('.t').textContent=p.nom;
+        el.querySelector('.d').textContent=(p.description?p.description+' · ':'')+p.competences.length+' compétence(s) · '+p.connecteurs.length+' connecteur(s)';
+        el.querySelector('.tog').onclick=async()=>{ try{ await invoke('core_plugin_activer',{slug:p.slug, actif:!p.actif}); }catch(e){ flash('⚠ '+e,5000); }
+          if(p.connecteurs.length) flash('connecteurs : effectif au prochain démarrage de Waly',5000); renderPersonnaliser('plugins'); };
+        el.querySelector('.danger').onclick=async()=>{ const ok=await dialog({titre:'Désinstaller « '+p.nom+' » ?', texte:'Ses compétences et ses connecteurs sont retirés ; son dossier installé est effacé (la source que tu avais choisie n’est pas touchée).', ok:'Désinstaller', danger:true}); if(!ok) return;
+          try{ await invoke('core_plugin_desinstaller',{slug:p.slug}); }catch(e){ flash('⚠ '+e,5000); } renderPersonnaliser('plugins'); };
+        L.appendChild(el);
+      }
+      $('plinst').onclick=async()=>{
+        $('plout').textContent='choix du fichier waly-plugin.toml…';
+        let p=null; try{ p=await invoke('core_plugin_choisir'); }catch(e){ $('plout').textContent='⚠ '+e; return; }
+        $('plout').textContent=''; if(!p) return;
+        const progs=p.connecteurs.map(c=>'• '+c.nom+' : lancera « '+[c.commande].concat(c.args).join(' ')+' »').join('\n');
+        const ok=await dialog({titre:'Installer « '+p.nom+' » ?', texte:(p.description?p.description+'\n\n':'')+p.competences.length+' compétence(s) : '+(p.competences.map(c=>c.titre).join(', ')||'aucune')+'.\n'+
+          (p.connecteurs.length?'\nCe plugin LANCERA des programmes sur ta machine, hors du scellé réseau (chaque appel te sera demandé) :\n'+progs:'\nAucun programme ne sera lancé.'), ok:'Installer'});
+        if(!ok) return;
+        try{ const r=await invoke('core_plugin_installer',{dossier:p.dossier}); $('plout').textContent='✓ '+r.nom+' installé'+(r.connecteurs.length?' — connecteurs au prochain démarrage de Waly':''); }catch(e){ $('plout').textContent='⚠ '+e; }
+        const keep=$('plout').textContent; await renderPersonnaliser('plugins'); $('plout').textContent=keep;
+      };
+    }
+  }
+
+  // ── Projets (lot 2) : conversations rangées + instructions + fichiers ──
+  async function nouveauProjet(){
+    const nom=await dialog({titre:'Nouveau projet', texte:'Un dossier de travail : ses conversations, ses instructions, ses fichiers de référence.', valeur:'', ok:'Créer'});
+    if(nom===null || !nom.trim()) return null;
+    try{ return await invoke('core_projet_creer',{nom}); }catch(e){ flash('création impossible : '+e,5000); return null; }
+  }
+  let voirArchives=false;
+  async function renderProjets(sub){
+    if(sub) return renderProjet(+sub);
+    let ps=[]; try{ ps=await invoke('core_projets')||[]; }catch(e){}
+    const actifs=ps.filter(p=>!p.archive), arch=ps.filter(p=>p.archive);
+    page.innerHTML='<div class="pw"><div class="ptitle"><h2 class="serif">Projets</h2><span class="g"></span><button class="bt solid" id="pnew">'+ICON.plus+'Nouveau projet</button></div>'+
+      (ps.length?'':'<div class="empty big">'+ICON.folder+'<div class="strong">Aucun projet</div><span>Un projet regroupe des conversations et des missions autour d’un sujet, avec ses instructions et ses fichiers de référence — Waly en tient compte à chaque message.</span></div>')+
+      '<div class="grid3" id="pgrid"></div>'+
+      (arch.length?'<div class="sect"><button class="fold" id="parch">'+(voirArchives?'Masquer':'Afficher')+' les projets archivés ('+arch.length+')</button></div><div class="grid3" id="pgrida"></div>':'')+'</div>';
+    const carte=(p)=>'<div class="ccard" data-p="'+p.id+'"><div class="pv">'+ICON.folder+'</div><div class="inf"><div class="n">'+esc(p.nom)+'</div><div class="m">'+p.sessions+' conversation'+(p.sessions>1?'s':'')+' · '+p.fichiers.length+' fichier'+(p.fichiers.length>1?'s':'')+(p.archive?' · archivé':'')+'</div></div></div>';
+    $('pgrid').innerHTML=actifs.map(carte).join('');
+    if(arch.length && voirArchives) $('pgrida').innerHTML=arch.map(carte).join('');
+    $$('.ccard[data-p]',page).forEach(c=>c.onclick=()=>openPage('projets:'+c.dataset.p));
+    $('pnew').onclick=async()=>{ const id=await nouveauProjet(); if(id) openPage('projets:'+id); };
+    if($('parch')) $('parch').onclick=()=>{ voirArchives=!voirArchives; renderProjets(); };
+  }
+  async function renderProjet(id){
+    let r; try{ r=await invoke('core_projet',{id}); }catch(e){ page.innerHTML='<div class="pw">'+H('Projets')+'<div class="empty">'+esc(e)+'</div></div>'; return; }
+    const p=r.projet;
+    page.innerHTML='<div class="pw">'+
+      '<div class="fine"><a href="#" id="pback">Projets</a> ›</div>'+
+      '<div class="ptitle"><h2 class="serif" id="pnom"></h2>'+(p.archive?'<span class="tag">archivé</span>':'')+'<span class="g"></span>'+
+        '<button class="bt small" id="pren">Renommer</button><button class="bt small" id="parchive">'+(p.archive?'Désarchiver':'Archiver')+'</button><button class="bt small danger" id="pdel">Supprimer</button></div>'+
+      '<div class="toolrow"><button class="bt solid" id="pconv">'+ICON.plus+'Nouvelle conversation</button><button class="bt" id="pmiss">Nouvelle mission</button></div>'+
+      '<h4>Conversations et missions</h4><div class="rows" id="psess"></div>'+
+      '<h4>Instructions du projet</h4><div class="sgroup pad"><div class="field"><textarea id="pinstr" rows="5" maxlength="4000" placeholder="Ex. : C’est ma thèse sur les bibliothèques publiques. Cite tes sources en APA, garde un ton universitaire."></textarea><div><button class="bt solid small" id="pinsave">Enregistrer</button> <span class="fine" id="pinout"></span></div></div></div>'+
+      '<h4>Fichiers de référence</h4><div class="hint">'+ICON.clip+'<span>Waly garde leur texte en tête dans les conversations du projet (environ 6 000 caractères au total, le reste est lu à la demande), sur ta machine. Un PDF est lu une fois par la reconnaissance de texte locale ; son texte est rangé dans Documents\\Waly\\Projets.</span></div>'+
+      '<div class="rows" id="pfich"></div><div class="scact"><button class="bt small" id="pfadd">+ Ajouter un fichier…</button><span class="fine" id="pfout"></span></div></div>';
+    $('pnom').textContent=p.nom; $('pinstr').value=p.instructions||'';
+    $('pback').onclick=(e)=>{ e.preventDefault(); openPage('projets'); };
+    const S=r.sessions;
+    $('psess').innerHTML = S.length ? '' : '<div class="empty">Aucune conversation dans ce projet. Commence-en une, ou range une conversation existante avec le + de la saisie.</div>';
+    for(const [sid,titre,st,k] of S){
+      const el=document.createElement('div'); el.className='row'; el.style.cursor='pointer';
+      el.innerHTML='<span class="ri2">'+(k==='agent'?'◆':ICON.folder)+'</span><div><div class="n"></div><div class="d"></div></div><div class="r"></div>';
+      el.querySelector('.n').textContent=titre; el.querySelector('.d').textContent=k==='agent'?('mission · '+(st||'')):'conversation';
+      el.onclick=()=>openSession(sid); $('psess').appendChild(el);
+    }
+    const f=p.fichiers;
+    $('pfich').innerHTML = f.length ? '' : '<div class="fine">Aucun fichier.</div>';
+    for(const ch of f){
+      const el=document.createElement('div'); el.className='row';
+      el.innerHTML='<span class="ri2">'+ICON.clip+'</span><div class="mw0"><div class="n"></div><div class="d"></div></div><div class="r"><button class="bt small">Retirer</button></div>';
+      el.querySelector('.n').textContent=ch.split(/[\\/]/).pop(); el.querySelector('.d').textContent=ch;
+      el.querySelector('button').onclick=async()=>{ try{ await invoke('core_projet_fichier_retirer',{id, chemin:ch}); }catch(e){} renderProjet(id); };
+      $('pfich').appendChild(el);
+    }
+    const maj=async(champs)=>{ const v=Object.assign({id, nom:p.nom, instructions:$('pinstr').value, archive:p.archive}, champs); await invoke('core_projet_maj', v); };
+    $('pinsave').onclick=async()=>{ try{ await maj({}); $('pinout').textContent='✓ enregistré — le prochain message en tient compte'; }catch(e){ $('pinout').textContent='⚠ '+e; } };
+    $('pren').onclick=async()=>{ const n=await dialog({titre:'Renommer le projet', valeur:p.nom, ok:'Renommer'}); if(n===null||!n.trim()) return; try{ await maj({nom:n}); }catch(e){ flash('⚠ '+e,5000); } renderProjet(id); refreshProjetTitre(); };
+    $('parchive').onclick=async()=>{ try{ await maj({archive:!p.archive}); }catch(e){ flash('⚠ '+e,5000); } renderProjet(id); };
+    $('pdel').onclick=async()=>{
+      const ok=await dialog({titre:'Supprimer le projet ?', texte:'« '+p.nom+' » disparaît avec ses instructions et sa liste de fichiers. Ses conversations et missions sont GARDÉES (elles sortent simplement du projet) ; tes fichiers ne sont pas touchés.', ok:'Supprimer', danger:true});
+      if(!ok) return; try{ await invoke('core_projet_supprimer',{id}); }catch(e){ flash('⚠ '+e,5000); } openPage('projets'); refreshProjetTitre();
+    };
+    $('pfadd').onclick=async()=>{
+      $('pfout').textContent='choix du fichier…';
+      try{ const c=await invoke('core_projet_fichier_ajouter',{id}); $('pfout').textContent=c?'✓ ajouté':''; }catch(e){ $('pfout').textContent='⚠ '+e; return; }
+      renderProjet(id);
+    };
+    $('pconv').onclick=async()=>{
+      if(busy) return; closePage();
+      try{ currentId=await invoke('core_new_session'); await invoke('core_session_projet',{session:currentId, projet:id}); agentDraft=false; renderHistory([]); await refreshSessions(); setPlaceholder(); refreshPlus(); refreshProjetTitre(); input.focus(); }catch(e){ flash('⚠ '+e,5000); }
+    };
+    $('pmiss').onclick=()=>{ if(busy) return; closePage(); projetPourMission=id; agentDraft=true; setHome(true); setTitle(); setPlaceholder(); refreshPlus(); refreshProjetTitre(); input.focus(); };
+  }
+  // Mission lancée depuis un projet : rangée dès que sa session existe.
+  let projetPourMission=null, projetCourant=null;
+  async function refreshProjetTitre(){
+    projetCourant=null;
+    if(agentDraft){ if(projetPourMission){ try{ const r=await invoke('core_projet',{id:projetPourMission}); projetCourant=r.projet; }catch(e){} } }
+    else { try{ projetCourant=await invoke('core_projet_de_session',{session:currentId}); }catch(e){} }
+    const t=$('ptag'); if(t){ t.hidden=!projetCourant; if(projetCourant) t.textContent=projetCourant.nom; }
+  }
+
+  async function renderCreations(){
+    let docs=[]; try{ docs=await invoke('core_documents')||[]; }catch(e){}
+    const GRP={docx:'Documents',md:'Documents',txt:'Documents',pdf:'Documents',xlsx:'Tableaux',csv:'Tableaux',tsv:'Tableaux',pptx:'Présentations',html:'Pages',htm:'Pages',svg:'Pages'};
+    page.innerHTML='<div class="pw">'+H('Créations')+
+      '<div class="toolrow"><div class="seg" id="cfilter"><button class="on" data-f="">Tout</button><button data-f="Documents">Documents</button><button data-f="Tableaux">Tableaux</button><button data-f="Présentations">Présentations</button><button data-f="Pages">Pages</button></div><span class="g"></span><span class="fine">Tout ce que Waly a créé · Documents\\Waly</span></div>'+
+      '<div class="grid3" id="cgrid"></div></div>';
+    function fill(f){
+      const g=$('cgrid'); const vis=docs.filter(d=>{ const e=(d.nom.split('.').pop()||'').toLowerCase(); return !f || GRP[e]===f; });
+      if(!vis.length){ g.outerHTML='<div class="empty" id="cgrid">Rien ici pour l’instant. Demande à Waly un document, un tableau ou une présentation.</div>'; return; }
+      g.innerHTML=vis.map((d,i)=>{ const e=(d.nom.split('.').pop()||'').toUpperCase().slice(0,4); return '<div class="ccard" data-i="'+i+'"><div class="pv">'+esc(e)+'</div><div class="inf"><div class="n">'+esc(d.nom)+'</div><div class="m">'+esc(d.chemin)+'</div></div></div>'; }).join('');
+      $$('.ccard',g).forEach(c=>c.onclick=()=>openViewer(vis[+c.dataset.i].chemin));
+    }
+    fill('');
+    $$('#cfilter button').forEach(b=>b.onclick=()=>{ $$('#cfilter button').forEach(x=>x.classList.toggle('on',x===b)); if(!$('cgrid').classList.contains('grid3')){ $('cgrid').outerHTML='<div class="grid3" id="cgrid"></div>'; } fill(b.dataset.f); });
+  }
+
+  async function renderProgramme(){
+    let a={}; try{ a=await invoke('core_artifacts')||{}; }catch(e){}
+    const r=a.rappels||[], t=a.taches||[];
+    page.innerHTML='<div class="pw">'+H('Programmé')+
+      '<div class="hint">'+ICON.bell+'<span>Dis à Waly « rappelle-moi demain à 11 h d’appeler le garage » ou « chaque lundi à 8 h… » : le rappel apparaît ici et Waly te le signale au bon moment (à la voix pendant un appel). Waly doit être ouvert.</span></div>'+
+      '<div class="sect">Rappels</div><div class="rows" id="prap"></div>'+
+      '<div class="sect">Missions programmées</div>'+
+      '<div class="hint">'+ICON.spark+'<span>Waly lance la mission tout seul à l’heure dite, dans sa propre conversation ; toute action sensible attend ton accord comme d’habitude. Waly doit être ouvert ; une échéance manquée est rattrapée une fois à l’ouverture.</span></div>'+
+      '<div class="rows" id="pmp"></div>'+
+      '<div class="sgroup pad"><div class="field"><textarea id="mpobj" rows="2" maxlength="1000" placeholder="Objectif — ex. : fais le point de mes tâches ouvertes et écris-moi un résumé dans resume-semaine.md"></textarea>'+
+        '<div class="toolrow"><input type="datetime-local" id="mpquand" class="mpin" /><select id="mprec" class="mpin"><option value="">une fois</option><option value="quotidien">chaque jour</option><option value="ouvres">jours ouvrés</option><option value="hebdomadaire">chaque semaine</option></select><select id="mpproj" class="mpin"><option value="">sans projet</option></select><span class="g"></span><button class="bt solid small" id="mpadd">Programmer</button></div><span class="fine" id="mpout"></span></div></div>'+
+      '<div class="sect">Tâches en cours</div><div class="rows">'+(t.length ? t.map(x=>'<div class="row"><span class="ri2">'+ICON.task+'</span><div><div class="n">'+esc(x.titre)+'</div><div class="d">'+esc((x.echeance?('échéance '+x.echeance+' · '):'')+x.priorite+' · '+x.statut)+'</div></div><div class="r"></div></div>').join('') : '<div class="empty">Aucune tâche ouverte.</div>')+'</div>';
+    remplirMissionsProgrammees();
+    const box=$('prap');
+    if(!r.length){ box.innerHTML='<div class="empty">Aucun rappel actif.</div>'; return; }
+    for(const x of r){
+      const el=document.createElement('div'); el.className='row';
+      el.innerHTML='<span class="ri2">'+ICON.bell+'</span><div><div class="n"></div><div class="d"></div></div><div class="r"><button class="bt small">Annuler</button></div>';
+      el.querySelector('.n').textContent=x.titre; el.querySelector('.d').textContent=x.quand+(x.recurrence?(' · '+x.recurrence):'');
+      el.querySelector('button').onclick=async()=>{ try{ await invoke('core_rappel_annuler',{id:x.id}); }catch(e){} renderProgramme(); refreshRappels(); };
+      box.appendChild(el);
+    }
+  }
+  const REC={quotidien:'chaque jour',hebdomadaire:'chaque semaine',ouvres:'jours ouvrés'};
+  const quandLisible=(s)=>{ const d=new Date(String(s).replace(' ','T')); return isNaN(d) ? s : d.toLocaleString('fr-FR',{weekday:'short',day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}); };
+  async function remplirMissionsProgrammees(){
+    let ms=[], ps=[]; try{ ms=await invoke('core_missions_programmees')||[]; }catch(e){} try{ ps=(await invoke('core_projets')||[]).filter(p=>!p.archive); }catch(e){}
+    const nomP=(id)=>{ const p=ps.find(x=>x.id===id); return p?p.nom:null; };
+    const box=$('pmp'); if(!box) return;
+    box.innerHTML = ms.length ? '' : '<div class="fine">Aucune mission programmée.</div>';
+    for(const m of ms){
+      const el=document.createElement('div'); el.className='row';
+      el.innerHTML='<span class="ri2">'+ICON.spark+'</span><div class="mw0"><div class="n"></div><div class="d"></div></div><div class="r"></div>';
+      el.querySelector('.n').textContent=m.objectif;
+      el.querySelector('.d').textContent='prochaine : '+quandLisible(m.prochain)+(m.recurrence?' · '+REC[m.recurrence]:'')+(nomP(m.projet_id)?' · projet '+nomP(m.projet_id):'')+(m.derniere_fois?' · dernière : '+quandLisible(m.derniere_fois):'');
+      const r=el.querySelector('.r');
+      if(m.derniere_session){ const v=document.createElement('button'); v.className='bt small'; v.textContent='Voir la dernière'; v.onclick=()=>openSession(m.derniere_session); r.appendChild(v); }
+      const a=document.createElement('button'); a.className='bt small'; a.textContent='Annuler'; a.onclick=async()=>{ try{ await invoke('core_mission_programmee_annuler',{id:m.id}); }catch(e){} remplirMissionsProgrammees(); }; r.appendChild(a);
+      box.appendChild(el);
+    }
+    const sel=$('mpproj'); if(sel && sel.options.length===1) ps.forEach(p=>{ const o=document.createElement('option'); o.value=p.id; o.textContent='projet '+p.nom; sel.appendChild(o); });
+    const q=$('mpquand'); if(q && !q.value){ const d=new Date(Date.now()+3600e3); d.setMinutes(0,0,0); const z=n=>String(n).padStart(2,'0'); q.value=d.getFullYear()+'-'+z(d.getMonth()+1)+'-'+z(d.getDate())+'T'+z(d.getHours())+':00'; }
+    const add=$('mpadd'); if(add) add.onclick=async()=>{
+      try{
+        await invoke('core_mission_programmer',{objectif:$('mpobj').value, quand:$('mpquand').value, recurrence:$('mprec').value||null, projet:$('mpproj').value?+$('mpproj').value:null});
+        $('mpobj').value=''; $('mpout').textContent='✓ programmée'; remplirMissionsProgrammees();
+      }catch(e){ $('mpout').textContent='⚠ '+e; }
+    };
+  }
+  // Échéances signalées par le cœur (app ouverte, aucune voix en cours).
+  let bandeau=null;
+  function afficherBandeau(html, action){
+    if(bandeau) bandeau.remove();
+    bandeau=document.createElement('div'); bandeau.className='bandeau';
+    bandeau.innerHTML='<span class="mw0">'+html+'</span>'+(action?'<button class="bt small" id="bdact">'+action.label+'</button>':'')+'<button class="ib" id="bdx" title="Fermer">'+ICON.x+'</button>';
+    document.body.appendChild(bandeau);
+    $('bdx').onclick=()=>{ bandeau.remove(); bandeau=null; };
+    if(action) $('bdact').onclick=()=>{ bandeau.remove(); bandeau=null; action.go(); };
+  }
+  if(T && T.event){
+    T.event.listen('rappel', (e)=>{ const r=e.payload||{}; afficherBandeau(ICON.bell+' <b>Rappel</b> — '+esc(r.titre)+(r.message?' · '+esc(r.message):'')); refreshRappels(); if(pageOpen==='programme') renderProgramme(); });
+    T.event.listen('partage-recu', (e)=>{ const r=e.payload||{}; afficherBandeau(ICON.shield+' <b>'+esc(r.contact)+'</b> t’a envoyé une conversation — « '+esc(r.titre)+' ». Paramètres › Partage et contacts pour l’accepter.'); if($('partzone')) majPartage(); });
+    T.event.listen('passerelle', ()=>{ refreshSessions($('sinput').value.trim()); refreshWaits(); majPasserelles(); });
+    T.event.listen('mission-programmee', (e)=>{ const m=e.payload||{}; refreshSessions($('sinput').value.trim()); refreshWaits();
+      afficherBandeau(ICON.spark+' <b>Mission programmée '+(m.ok?'terminée':'en échec')+'</b> — '+esc(m.objectif), {label:'Voir', go:()=>openSession(m.session)}); if(pageOpen==='programme') renderProgramme(); });
+  }
+  async function refreshRappels(){ try{ const a=await invoke('core_artifacts')||{}; const n=(a.rappels||[]).length; $('nrappels').textContent=n?n:''; }catch(e){} }
+
+  // ── parametres ────────────────────────────────────────────────────────
+  const PANES=[['general','Général'],['memoire','Mémoire'],['modeles','Modèles'],['voix','Voix'],['capacites','Capacités'],['partage','Partage et contacts'],['utilisation','Utilisation'],['vieprivee','Vie privée'],['apropos','À propos']];
+  function openSettings(pane){
+    showPage('parametres');
+    const v=$('v-settings');
+    v.innerHTML='<div class="settings"><nav class="snav"><h2 class="serif">Paramètres</h2>'+PANES.map(([k,l])=>'<button class="ni'+(k===pane?' on':'')+'" data-sp="'+k+'">'+l+'</button>').join('')+'</nav><div class="spane"><div class="in" id="sp"></div></div></div>';
+    $$('[data-sp]',v).forEach(b=>b.onclick=()=>openSettings(b.dataset.sp));
+    ({general:paneGeneral, memoire:paneMemoire, modeles:paneModeles, voix:paneVoix, capacites:paneCapacites, partage:panePartage, utilisation:paneUtilisation, vieprivee:paneVie, apropos:paneApropos}[pane])($('sp'));
+  }
+  const srow=(n,d,right)=>'<div class="srow"><div class="sl"><div class="n">'+n+'</div>'+(d?'<div class="d">'+d+'</div>':'')+'</div>'+(right||'')+'</div>';
+
+  function paneGeneral(box){
+    let th=''; try{ th=localStorage.getItem('waly-theme')||''; }catch(e){}
+    box.innerHTML='<h3>Général</h3><div class="sgroup">'+
+      srow('Apparence','', '<div class="seg" id="themeseg"><button data-t="light">Clair</button><button data-t="dark">Sombre</button><button data-t="">Système</button></div>')+
+      srow('Langue','Français','')+
+      srow('Micro','Allumé seulement quand tu dictes ou que tu appelles Waly ; éteint le reste du temps. Rien n’est enregistré.','')+
+      srow('Style de réponse','Pour toutes les conversations écrites ; la voix reste brève.','<div class="seg" id="styleseg"><button data-s="concis">Concis</button><button data-s="normal">Normal</button><button data-s="detaille">Détaillé</button></div>')+
+      '</div><h3>Personnalité et instructions</h3>'+
+      '<div class="hint">'+ICON.edit+'<span>Comment Waly te parle : tutoiement, ton, ce qu’il doit savoir de ton métier, ce qu’il doit éviter. Valable en texte et à la voix (au prochain appel). Reste sur ta machine.</span></div>'+
+      '<div class="sgroup pad"><div class="field"><textarea id="instr" rows="6" maxlength="2000" placeholder="Ex. : Tutoie-moi. Je suis infirmière de nuit, réponds sans jargon. Pas d’emojis."></textarea><div><button class="bt solid small" id="instrsave">Enregistrer</button> <span class="fine" id="instrout"></span></div></div></div>';
+    $$('#themeseg button').forEach(b=>{ b.classList.toggle('on', b.dataset.t===th); b.onclick=()=>{ try{ localStorage.setItem('waly-theme', b.dataset.t); }catch(e){} applyTheme(b.dataset.t); paneGeneral(box); }; });
+    invoke('core_reglages').then(r=>{
+      styleCourant=r.style||'normal'; marquerStyle();
+      $$('#styleseg button').forEach(b=>{ b.classList.toggle('on', b.dataset.s===styleCourant); b.onclick=async()=>{ await poserStyle(b.dataset.s); $$('#styleseg button').forEach(x=>x.classList.toggle('on', x.dataset.s===styleCourant)); }; });
+      $('instr').value=r.instructions||'';
+    }).catch(()=>{});
+    $('instrsave').onclick=async()=>{
+      $('instrout').textContent='…';
+      try{ await invoke('core_reglage_set',{cle:'instructions', valeur:$('instr').value}); $('instrout').textContent=$('instr').value.trim()?'✓ enregistré — le prochain message en tient compte':'✓ instructions effacées'; }
+      catch(e){ $('instrout').textContent='⚠ '+e; }
+    };
+  }
+
+  const CAT={fact:'Fait durable',preference:'Préférence · 90 j',context:'Contexte · 30 j',event:'Événement · 7 j'};
+  async function paneMemoire(box){
+    let m=[]; try{ m=await invoke('core_memoires')||[]; }catch(e){}
+    box.innerHTML='<h3>Mémoire <span class="g"></span><button class="bt small" id="memexport">Copier en Markdown</button></h3>'+
+      '<div class="hint">'+ICON.shield+'<span>Ce que Waly retient de toi, sur ta machine. Corrige, oublie ou ajoute : la prochaine conversation en tient compte. Les préférences, contextes et événements expirent seuls ; les faits durables restent.</span></div>'+
+      '<h4>Ajouter un souvenir</h4><div class="sgroup pad"><div class="field"><select id="memcat">'+Object.entries(CAT).map(([k,l])=>'<option value="'+k+'">'+l+'</option>').join('')+'</select><textarea id="memval" rows="2" placeholder="Ex. : Je préfère les documents en .docx"></textarea><div><button class="bt solid small" id="memadd">'+ICON.plus+'Ajouter</button> <span class="fine" id="memout"></span></div></div></div>'+
+      '<h4>Souvenirs <span class="tag">'+m.length+'</span></h4><div class="sgroup" id="memlist"></div>';
+    const list=$('memlist');
+    if(!m.length) list.innerHTML='<div class="srow"><div class="sl"><div class="d">Waly ne retient encore rien de toi.</div></div></div>';
+    for(const x of m){
+      const el=document.createElement('div'); el.className='srow';
+      el.innerHTML='<div class="sl"><div class="n"><span class="mono s12"></span><span class="tag"></span></div><div class="d ed"></div></div><button class="ib" title="Modifier">'+ICON.edit+'</button><button class="ib" title="Oublier">'+ICON.trash+'</button>';
+      el.querySelector('.mono').textContent=x.cle; el.querySelector('.tag').textContent=CAT[x.categorie]||x.categorie;
+      const d=el.querySelector('.d'); d.textContent=x.valeur;
+      const [be, bo]=el.querySelectorAll('button');
+      be.onclick=async()=>{
+        if(d.getAttribute('contenteditable')!=='true'){ d.setAttribute('contenteditable','true'); d.focus(); be.innerHTML=ICON.check; be.title='Enregistrer'; return; }
+        d.setAttribute('contenteditable','false'); be.innerHTML=ICON.edit; be.title='Modifier';
+        try{ await invoke('core_memoire_maj',{cle:x.cle, categorie:x.categorie, valeur:d.textContent}); flash('souvenir corrigé',2500); }catch(e){ flash('échec : '+e,5000); }
+      };
+      bo.onclick=async()=>{ try{ await invoke('core_memoire_oublier',{cle:x.cle}); }catch(e){} paneMemoire(box); };
+      list.appendChild(el);
+    }
+    $('memadd').onclick=async()=>{
+      const v=$('memval').value.trim(); if(!v) return;
+      const cle='note-'+new Date().toISOString().replace(/[-:T.Z]/g,'').slice(0,14);
+      try{ await invoke('core_memoire_maj',{cle, categorie:$('memcat').value, valeur:v}); paneMemoire(box); }catch(e){ $('memout').textContent='échec : '+e; }
+    };
+    $('memexport').onclick=()=>copyText('# Mémoire de Waly\n\n'+m.map(x=>'- **'+x.cle+'** ('+(CAT[x.categorie]||x.categorie)+') : '+x.valeur).join('\n'));
+  }
+
+  async function paneModeles(box){
+    box.innerHTML='<h3>Modèles</h3><div class="sgroup">'+
+      srow('Réflexion approfondie','Waly réfléchit par écrit avant de répondre et te montre sa réflexion, repliée au-dessus de la réponse. En conversation écrite seulement (ni voix, ni mission, ni écran). Plus posé, nettement plus lent sur cette machine — et un petit modèle peut encore se tromper.','<span class="tog reflextog" id="reflextog" title="Activer / désactiver"></span>')+
+      srow('Outils envoyés au modèle','<span id="outdesc">…</span>','<div class="seg" id="outseg"><button data-o="auto">Automatique</button><button data-o="tous">Tous</button><button data-o="selection">Sélection</button></div>')+
+      '</div><div id="machine"><div class="fine">détection de la machine…</div></div>'+
+      '<h4>Télécharger d’autres modèles</h4><div class="hint">'+ICON.box+'<span>Waly ne télécharge rien lui-même : il reste scellé. Il demande à Ollama, le moteur local, de tirer le modèle depuis son registre — cette sortie est celle du moteur, tu la vois ici pendant qu’elle dure et elle est inscrite dans Vie privée.</span></div><div id="dlzone"><div class="fine">lecture du catalogue…</div></div>'+
+      '<h4>Modèles extérieurs et routeur</h4><div class="hint">'+ICON.shield+'<span>Claude, Mistral, OpenAI ou ton propre serveur, avec ta clé. Waly reste scellé : l’appel sort par une passerelle séparée, vers la seule adresse déclarée, et chaque sortie est inscrite dans Vie privée. Règle qui ne se désactive pas : un modèle extérieur ne reçoit que le texte de la conversation — jamais ta mémoire, tes instructions, ton écran, tes outils ; un fichier joint seulement si tu l’autorises pour ce message. Missions, écran et images restent locaux.</span></div><div id="extzone"><div class="fine">lecture…</div></div>';
+    marquerReflexion(); $('reflextog').style.cursor='pointer'; $('reflextog').onclick=()=>poserReflexion(!reflexionOn);
+    majModeles(); majExterieurs();
+    const majOutils=async()=>{
+      let e=null; try{ e=await invoke('core_outils_etat'); }catch(_){}
+      if(!e){ $('outdesc').textContent='état inconnu'; return; }
+      $$('#outseg button').forEach(b=>b.classList.toggle('on', b.dataset.o===e.reglage));
+      const taille=e.milliards!=null?' ('+String(e.milliards).replace('.',',')+' milliards de paramètres)':'';
+      $('outdesc').textContent = e.mode==='selection'
+        ? 'Sélection en cours'+(e.reglage==='auto'?' : '+e.modele+taille+' est un petit modèle, il ne reçoit que les outils utiles au message — moins de tokens, moins d’errance.':' (forcée).')
+        : 'Tous les outils'+(e.reglage==='auto'?' : '+e.modele+(taille||' (taille inconnue)')+' est assez grand pour le catalogue complet.':' (forcé).');
+    };
+    majOutils();
+    $$('#outseg button').forEach(b=>b.onclick=async()=>{ try{ await invoke('core_reglage_set',{cle:'outils', valeur:b.dataset.o}); }catch(e){ flash('⚠ '+e,5000); } majOutils(); });
+    let r=null; try{ r=await invoke('core_materiel'); }catch(e){ $('machine').innerHTML='<div class="fine">détection indisponible</div>'; return; }
+    const p=r.profil, k=r.reco;
+    let h='<h4>Ta machine</h4><div class="sgroup">'+srow('Mémoire', p.ram_totale_go.toFixed(1)+' Go ('+p.ram_dispo_go.toFixed(1)+' Go libres)');
+    if(!p.gpus.length) h+=srow('Carte graphique','non détectée');
+    for(const g of p.gpus) h+=srow(esc(g.nom),(g.integre?'intégrée':'dédiée')+' · '+g.vram_go.toFixed(1)+' Go');
+    h+=srow('NPU', esc(p.npu||'aucun'));
+    if(p.sac_actif) h+=srow('Smart App Control','actif — bloque les programmes non signés');
+    h+='</div><h4>En service</h4><div class="sgroup">'+srow(esc(r.actuel.modele)+' <span class="tag">port '+esc(r.actuel.port)+'</span>', esc(r.actuel.vision))+'</div>';
+    h+='<h4>Recommandé pour cette machine</h4><div class="sgroup">'+srow('Cerveau : '+esc(k.cerveau), esc(k.moteur))+srow('Vision', k.cerveau_voit?'le cerveau voit lui-même':esc(k.modele_vision||'aucune'));
+    for(const x of k.a_faire) h+=srow('À faire', esc(x));
+    h+='</div><pre class="pre">'+esc(k.toml)+'</pre>';
+    if(r.premier) h+='<div><button class="bt solid small" id="applyreco">Appliquer cette recommandation</button> <span class="fine" id="applyout"></span></div>';
+    else h+='<div class="fine">Ta configuration existe déjà (data\\waly.toml) : pour suivre la recommandation, remplace sa section [llm] par ce bloc puis relance Waly.</div>';
+    $('machine').innerHTML=h;
+    const b=$('applyreco'); if(b) b.onclick=async()=>{ b.disabled=true; try{ $('applyout').textContent='✓ '+(await invoke('core_materiel_appliquer')); }catch(e){ $('applyout').textContent='⚠ '+e; b.disabled=false; } };
+    try{ localStorage.setItem('waly-materiel-vu','1'); }catch(e){}
+  }
+  // Modèles extérieurs (lot 3) : déclarer, tester, retirer ; choisir qui répond.
+  async function majExterieurs(){
+    const z=$('extzone'); if(!z) return;
+    await majCerveau();
+    if(!$('extzone')) return;
+    const F=cerveau.fournisseurs||[];
+    let h='<div class="sgroup">';
+    if(!cerveau.exterieurs.length) h+=srow('Aucun modèle extérieur','Tout est traité sur cette machine.','');
+    for(const e of cerveau.exterieurs){
+      const actif = cerveau.mode!=='local' && e.id===cerveau.exterieur_id;
+      h+=srow(esc(e.modele)+' <span class="tag">'+esc(e.nom)+'</span>'+(actif?'<span class="tag">'+(cerveau.mode==='auto'?'routeur':'en service')+'</span>':''),
+        'sort vers '+esc(e.hote)+' · clé chiffrée par Windows · <span id="exttest'+e.id+'"></span>',
+        '<button class="bt small" data-exttest="'+e.id+'">Tester</button><button class="bt small danger" data-extdel="'+e.id+'">Retirer</button>');
+    }
+    h+='</div><div class="sgroup">'+
+      srow('Qui répond','Local : tout reste sur la machine. Extérieur : tes messages de conversation sortent vers le modèle choisi. Auto : local d’abord — seul le travail de fond sur du texte (rédiger, analyser, expliquer, coder) sort ; ce qui touche à tes outils, ta mémoire, tes fichiers reste local. La réponse dit toujours qui a répondu.',
+        '<div class="seg" id="cerveauseg"><button data-c="local">Local</button><button data-c="exterieur">Extérieur</button><button data-c="auto">Auto</button></div>')+'</div>'+
+      '<div class="sgroup pad"><div class="field"><select id="extf">'+F.map(f=>'<option value="'+esc(f.id)+'">'+esc(f.nom)+'</option>').join('')+'</select>'+
+      '<input id="exturl" placeholder="Adresse du serveur, ex. https://ia.exemple.fr/v1 ou http://192.168.1.20:11434/v1" maxlength="300" hidden>'+
+      '<input id="extm" list="extml" placeholder="Modèle" maxlength="120"><datalist id="extml"></datalist>'+
+      '<input id="extk" type="password" autocomplete="off" placeholder="Ta clé d’API — chiffrée par Windows, jamais affichée ensuite" maxlength="400">'+
+      '<div><button class="bt solid small" id="extadd">Ajouter</button> <span class="fine" id="extout"></span></div></div></div>';
+    z.innerHTML=h;
+    const majF=()=>{ const f=F.find(x=>x.id===$('extf').value)||{modeles:[],base_url:''}; $('exturl').hidden=!!f.base_url; $('extml').innerHTML=(f.modeles||[]).map(x=>'<option value="'+esc(x)+'">').join(''); $('extm').value=(f.modeles||[])[0]||''; };
+    $('extf').onchange=majF; majF();
+    $$('#cerveauseg button').forEach(b=>{ b.classList.toggle('on', b.dataset.c===cerveau.mode); b.disabled = b.dataset.c!=='local' && !cerveau.exterieurs.length;
+      b.onclick=async()=>{ const x=extActif()||cerveau.exterieurs[0]; await choisirCerveau({mode:b.dataset.c, exterieur:x?x.id:null}); majExterieurs(); }; });
+    $('extadd').onclick=async()=>{
+      const o=$('extout'); o.textContent='…';
+      try{ await invoke('core_exterieur_ajouter',{fournisseur:$('extf').value, baseUrl:$('exturl').value.trim(), modele:$('extm').value.trim(), cle:$('extk').value.trim()}); $('extk').value=''; majExterieurs(); }
+      catch(e){ o.textContent='⚠ '+e; }
+    };
+    $$('#extzone [data-exttest]').forEach(b=>b.onclick=async()=>{
+      const o=$('exttest'+b.dataset.exttest); o.textContent='test (une vraie sortie, quelques tokens)…'; b.disabled=true;
+      try{ const r=await invoke('core_exterieur_tester',{id:Number(b.dataset.exttest)}); o.innerHTML='<span class="ok">✓ répond : '+esc(r)+'</span>'; }
+      catch(e){ o.innerHTML='<span class="warn">⚠ '+esc(e)+'</span>'; }
+      b.disabled=false;
+    });
+    $$('#extzone [data-extdel]').forEach(b=>b.onclick=async()=>{
+      const e=cerveau.exterieurs.find(x=>x.id===Number(b.dataset.extdel));
+      if(!(await dialog({titre:'Retirer '+(e?e.modele:'ce modèle')+' ?', texte:'Sa clé est effacée de cette machine.', ok:'Retirer', danger:true}))) return;
+      try{ await invoke('core_exterieur_retirer',{id:Number(b.dataset.extdel)}); }catch(err){ flash('⚠ '+err,5000); }
+      majExterieurs();
+    });
+  }
+  // Télécharger d'autres modèles (lot 3) : catalogue jugé pour CETTE machine.
+  const VERDICT={tient_bien:'tient bien',lent:'lent',trop_gros:'trop gros'};
+  let dlPoll=null;
+  const go=(o)=>(o/1e9).toFixed(1).replace('.',',')+' Go';
+  async function majModeles(){
+    const z=$('dlzone'); if(!z) return;
+    let m=null, p=null;
+    try{ m=await invoke('core_modeles'); p=await invoke('core_modele_progression'); }catch(e){ z.innerHTML='<div class="fine">catalogue indisponible : '+esc(e)+'</div>'; return; }
+    if(!$('dlzone')) return;
+    const enCours = p && !p.fini;
+    let h='';
+    if(!m.moteur) h+='<div class="fine warn">Ollama ne répond pas sur cette machine : ouvre-le pour installer un modèle.</div>';
+    if(p){
+      const pct = p.total ? Math.floor(100*p.fait/p.total) : 0;
+      h+='<div class="sgroup">'+srow(esc(p.nom)+(enCours?' <span class="tag">sortie du moteur ouverte</span>':''),
+        enCours ? (p.total ? pct+' % — '+go(p.fait)+' sur '+go(p.total) : esc(p.statut))
+          : (p.erreur ? '<span class="warn">échec : '+esc(p.erreur)+'</span>' : (p.annule ? 'annulé — ce qui est reçu est gardé, relance pour reprendre' : '<span class="ok">✓ installé</span>')),
+        enCours ? '<button class="bt small" id="dlstop">Annuler</button>' : '')+'</div>';
+    }
+    const cap=(x)=>[x.outils?'outils':'', x.vision?'vision':'', x.reflexion?'réflexion native':''].filter(Boolean).join(' · ')||'texte';
+    h+='<div class="sgroup">';
+    for(const x of m.catalogue){
+      const bouton = x.installe ? '<span class="tag">installé</span>'
+        : '<button class="bt small" data-dl="'+esc(x.nom)+'"'+((enCours||!m.moteur)?' disabled':'')+'>Télécharger</button>';
+      h+=srow(esc(x.nom)+' <span class="tag">'+Number(x.taille_go).toFixed(1).replace('.',',')+' Go</span><span class="tag'+(x.verdict==='trop_gros'?' warn':'')+'">'+VERDICT[x.verdict]+'</span>',
+        esc(cap(x)+' — '+x.note)+(x.avertissement?' <span class="warn">⚠ Sur cette machine : '+esc(x.avertissement)+'.</span>':''), bouton);
+    }
+    h+='</div><div class="sgroup pad"><div class="field"><input id="dlnom" placeholder="Autre modèle : son nom Ollama (ex. qwen3:14b)" maxlength="120"><div><button class="bt small" id="dlautre"'+((enCours||!m.moteur)?' disabled':'')+'>Télécharger</button> <span class="fine" id="dlout"></span></div></div></div>';
+    const autres=m.installes.filter(i=>!m.catalogue.some(c=>c.nom===i.nom));
+    h+='<h4>Installés sur cette machine <span class="tag">'+m.installes.length+'</span></h4><div class="sgroup">'+
+      (m.installes.length ? m.installes.map(i=>srow(esc(i.nom)+(i.nom===m.actuel?' <span class="tag">en service</span>':'')+' <span class="tag">'+Number(i.taille_go).toFixed(1).replace('.',',')+' Go</span><span class="tag'+(i.verdict==='trop_gros'?' warn':'')+'">'+VERDICT[i.verdict]+'</span>',
+        esc((i.capacites||[]).map(c=>({completion:'texte',tools:'outils',vision:'vision',thinking:'réflexion native',embedding:'embeddings'}[c]||c)).join(' · ')), '')).join('')
+        : srow('Aucun modèle installé','')) + '</div>';
+    z.innerHTML=h;
+    const lancer=async(nom)=>{ try{ await invoke('core_modele_telecharger',{nom}); }catch(e){ const o=$('dlout'); if(o) o.textContent='⚠ '+e; flash('⚠ '+e,5000); return; } majModeles(); };
+    $$('#dlzone [data-dl]').forEach(b=>b.onclick=()=>lancer(b.dataset.dl));
+    $('dlautre').onclick=()=>{ const n=$('dlnom').value.trim(); if(n) lancer(n); };
+    const s=$('dlstop'); if(s) s.onclick=async()=>{ try{ await invoke('core_modele_annuler'); }catch(e){} };
+    clearTimeout(dlPoll);
+    if(enCours) dlPoll=setTimeout(majModeles, 1500);
+  }
+  function paneVoix(box){
+    box.innerHTML='<h3>Voix</h3><div class="sgroup">'+
+      srow('Voix de Waly','Fabien (masculine) par défaut ; développeuse (féminine) avec WALY_TTS_SPEAKER=0.','')+
+      srow('M’interrompre en parlant','Waly s’arrête dès que tu reprends la parole.','<span class="tag">activé</span>')+
+      srow('Sous-titres pendant l’appel','','<span class="tag">activé</span>')+'</div>';
+  }
+  function paneCapacites(box){
+    box.innerHTML='<h3>Capacités</h3><div class="sgroup">'+
+      srow('Lire l’écran partagé','En texte par l’accessibilité Windows ; l’image seulement si tu la demandes.','<span class="tag">activé</span>')+
+      srow('Agir dans tes applications','En mission seulement : cliquer, écrire, choisir — chaque geste approuvé.','<span class="tag">activé</span>')+
+      srow('Créer des fichiers','Les créations apparaissent dans le fil et dans Créations.','<span class="tag">activé</span>')+
+      srow('Apprendre des compétences','Après une mission réussie, ou en te regardant faire.','<span class="tag">activé</span>')+
+      srow('Aides en parallèle <span class="soon">bientôt</span>','Une mission confiera des sous-tâches à des aides qui travaillent en même temps.','')+
+      srow('Compétences qui s’améliorent','Après une mission réussie, Waly relit la compétence suivie et la réécrit si l’usage a révélé mieux ; chaque version est gardée (Personnaliser).','<span class="tag">activé</span>')+'</div>';
+  }
+  function panePartage(box){
+    box.innerHTML='<h3>Partage et contacts</h3><div class="hint">'+ICON.shield+'<span>Envoyer une conversation à un autre utilisateur de Waly, où qu’il soit, sans compte. Elle est chiffrée sur ta machine pour lui seul, puis déposée sur son <b>relais</b> : un petit programme (waly-relais) que toi ou un proche hébergez, qui garde des enveloppes fermées sans pouvoir les lire. Ton « code Waly » est ta clé publique : donne-le à un contact, prends le sien. Ce que tu reçois attend ton accord. Appeler un contact : bientôt.</span></div><div id="partzone"><div class="fine">lecture…</div></div>';
+    majPartage();
+  }
+  async function majPartage(){
+    const z=$('partzone'); if(!z) return;
+    let p=null; try{ p=await invoke('core_partage'); }catch(e){}
+    if(!$('partzone')) return;
+    if(!p){ z.innerHTML='<div class="fine">indisponible</div>'; return; }
+    let h='';
+    if(p.recus.length){
+      h+='<h4>Reçues, en attente de ton accord <span class="tag">'+p.recus.length+'</span></h4><div class="sgroup">'+p.recus.map(r=>srow(esc(r.titre)+' <span class="tag">de '+esc(r.contact)+'</span>', r.messages+' message(s) · '+esc(String(r.recu_at).slice(0,16)), '<button class="bt small" data-recu-non="'+r.id+'">Refuser</button><button class="bt solid small" data-recu-oui="'+r.id+'">Accepter</button>')).join('')+'</div>';
+    }
+    h+='<h4>Ton relais et ton code</h4><div class="sgroup pad"><div class="field">'+
+      '<input id="prelais" placeholder="Adresse de ton relais, ex. https://relais.exemple.fr" maxlength="300">'+
+      '<input id="pnom" placeholder="Le nom que tes contacts verront" maxlength="40">'+
+      '<div><button class="bt solid small" id="psave">Enregistrer</button> <span class="fine" id="pout"></span></div></div></div>';
+    if(p.code) h+='<div class="sgroup">'+srow('Ton code Waly','<span class="mono s12" id="pcode"></span>','<button class="bt small" id="pcopy">Copier</button>')+'</div>';
+    if(p.erreur) h+='<div class="fine warn">⚠ relève impossible : '+esc(p.erreur)+'</div>';
+    h+='<h4>Contacts <span class="tag">'+p.contacts.length+'</span></h4><div class="sgroup">'+
+      (p.contacts.length ? p.contacts.map(c=>srow(esc(c.nom)+' <span class="tag mono">'+esc(c.empreinte)+'</span>','reçoit sur '+esc(c.relais.split('//')[1]||c.relais),'<button class="bt small danger" data-cdel="'+c.id+'">Retirer</button>')).join('') : srow('Aucun contact','Ajoute le code Waly de quelqu’un pour lui envoyer une conversation — et donne-lui le tien pour qu’il accepte ce que tu envoies.',''))+'</div>'+
+      '<div class="sgroup pad"><div class="field"><input id="cnom" placeholder="Nom du contact" maxlength="40"><input id="ccode" placeholder="Son code Waly (waly1-…@https://…)" maxlength="500"><div><button class="bt small" id="cadd">Ajouter le contact</button> <span class="fine" id="cout"></span></div></div></div>';
+    z.innerHTML=h;
+    $('prelais').value=p.relais||''; $('pnom').value=p.nom||'';
+    if(p.code){ $('pcode').textContent=p.code; $('pcopy').onclick=()=>{ copyText(p.code); flash('code copié',2500); }; }
+    $('psave').onclick=async()=>{ const o=$('pout'); o.textContent='…'; try{ await invoke('core_partage_regler',{relais:$('prelais').value.trim(), nom:$('pnom').value.trim()}); await majPartage(); refreshSceau(); }catch(e){ o.textContent='⚠ '+e; } };
+    $('cadd').onclick=async()=>{ const o=$('cout'); try{ await invoke('core_contact_ajouter',{nom:$('cnom').value.trim(), code:$('ccode').value.trim()}); majPartage(); }catch(e){ o.textContent='⚠ '+e; } };
+    $$('#partzone [data-cdel]').forEach(b=>b.onclick=async()=>{ if(!(await dialog({titre:'Retirer ce contact ?', texte:'Ce qu’il t’enverra ensuite sera jeté.', ok:'Retirer', danger:true}))) return; try{ await invoke('core_contact_retirer',{id:Number(b.dataset.cdel)}); }catch(e){} majPartage(); });
+    const decider=async(id, accepter)=>{ try{ const sid=await invoke('core_partage_decider',{id, accepter}); if(accepter){ flash('conversation ajoutée', 4000); refreshSessions($('sinput').value.trim()); } }catch(e){ flash('⚠ '+e,5000); } majPartage(); };
+    $$('#partzone [data-recu-oui]').forEach(b=>b.onclick=()=>decider(Number(b.dataset.recuOui), true));
+    $$('#partzone [data-recu-non]').forEach(b=>b.onclick=()=>decider(Number(b.dataset.recuNon), false));
+  }
+  async function paneUtilisation(box){
+    box.innerHTML='<h3>Utilisation</h3><div class="fine">lecture…</div>';
+    let u={par_modele:[],derniers:[]}; try{ u=await invoke('core_utilisation'); }catch(e){ box.innerHTML='<h3>Utilisation</h3><div class="fine">indisponible : '+esc(e)+'</div>'; return; }
+    const s=(ms)=>ms==null?'—':(ms/1000).toFixed(1)+' s', n=(x)=>Number(x||0).toLocaleString('fr-FR');
+    let h='<h3>Utilisation</h3><div class="hint">'+ICON.shield+'<span>Mesuré sur ta machine, tour par tour : jamais le contenu, seulement les tokens et les temps. Coût : zéro, tout est local.</span></div>';
+    h+='<h4>30 derniers jours</h4><div class="sgroup pad">';
+    if(!u.par_modele.length) h+='<div class="fine">Aucun tour mesuré encore. Écris à Waly : chaque réponse apparaîtra ici.</div>';
+    else h+='<table class="utab"><tr><th>Modèle</th><th class="n">Tours</th><th class="n">Tokens lus</th><th class="n">Tokens écrits</th><th class="n">Tour moyen</th><th class="n">Premier mot</th></tr>'+
+      u.par_modele.map(m=>'<tr><td>'+esc(m.modele)+(m.estime?' <span class="tag">en partie estimé</span>':'')+'</td><td class="n">'+n(m.tours)+'</td><td class="n">'+n(m.entree)+'</td><td class="n">'+n(m.sortie)+'</td><td class="n">'+s(m.duree_ms)+'</td><td class="n">'+s(m.premier_ms)+'</td></tr>').join('')+'</table>';
+    h+='</div><h4>Derniers tours</h4><div class="sgroup pad">';
+    if(!u.derniers.length) h+='<div class="fine">—</div>';
+    else h+='<table class="utab"><tr><th>Heure</th><th>Conversation</th><th class="n">Lus</th><th class="n">Écrits</th><th class="n">Durée</th><th class="n">Premier mot</th></tr>'+
+      u.derniers.map(({at,tour:t})=>'<tr><td>'+esc(String(at).slice(5,16).replace('T',' '))+'</td><td>'+esc(titles[t.session_id]||('#'+t.session_id))+'</td><td class="n">'+n(t.prompt_tokens)+(t.estime?'~':'')+'</td><td class="n">'+n(t.completion_tokens)+(t.estime?'~':'')+'</td><td class="n">'+s(t.duree_ms)+'</td><td class="n">'+s(t.premier_ms)+'</td></tr>').join('')+'</table>';
+    h+='</div><h4>Résumé des longues conversations</h4><div class="hint">'+ICON.box+'<span>Waly ne voit que les derniers messages d’une conversation. Au repos, il résume ce qui sort de sa mémoire de travail et le garde en tête (menu ⋯ d’une conversation : « Ce que Waly retient du début »).</span></div>';
+    box.innerHTML=h;
+  }
+  async function paneVie(box){
+    let e={}; try{ e=await invoke('core_sceau_etat'); }catch(_){}
+    const ok=e.disponible && e.privilegie;
+    let mcpA=[]; try{ mcpA=await invoke('core_mcp_actifs')||[]; }catch(_){}
+    box.innerHTML='<h3>Vie privée</h3><div class="sgroup">'+
+      srow('Réseau scellé', ok?'<span class="ok">Tenu</span> : toute sortie réseau de Waly est bloquée par Windows et inscrite au journal.':'<span class="warn">Non tenu</span> : '+(e.disponible?'le service de scellé tourne sans privilège — réinstalle le service.':'le service de scellé n’est pas installé — exécute install-eleve.ps1 en administrateur.'), '<button class="bt small" id="sctest">Vérifier maintenant</button>')+
+      srow('Hors du scellé', mcpA.length ? mcpA.map(s=>esc(s.nom)).join(', ')+' — connecteurs que tu as déclarés' : 'rien','')+
+      srow('Sorties que tu as ouvertes', (cerveau.exterieurs.length ? cerveau.exterieurs.map(x=>esc(x.modele)+' → '+esc(x.hote)).join(', ')+(cerveau.mode==='local'?' — déclarés, hors service : rien ne sort':' — '+(cerveau.mode==='auto'?'routeur actif':'en service'))+'. ' : 'Aucun modèle extérieur. ')+'Partage entre deux Waly : voir Partage et contacts. Passerelles de messagerie : voir Personnaliser › Connecteurs. Téléchargements de modèles : par Ollama, seulement quand tu le demandes. Ces sorties passent par un programme séparé ; Waly, lui, reste scellé.','')+
+      '</div><div class="fine" id="scout"></div><h4>Journal du scellé</h4><div class="sgroup" id="scjournal"></div>'+
+      '<h4>Sceller un autre agent</h4>'+
+      '<div class="hint">'+ICON.shield+'<span>Le huis clos peut fermer le réseau de <b>n’importe quel programme</b> de cette machine — un autre agent IA, par exemple — pas seulement Waly. Chaque scellé demande une élévation (Windows te demandera l’autorisation).</span></div>'+
+      '<div class="sgroup" id="scagents"></div>'+
+      '<div class="scact"><button class="bt small" id="scadd">+ Choisir un programme…</button><span class="fine" id="scaddout"></span></div>';
+    async function journal(){
+      let l=[]; try{ l=await invoke('core_sceau_journal')||[]; }catch(_){}
+      const G={pose:'Scellé',levee:'Levé',bloque:'Sortie bloquée',sortie:'Sortie ouverte'};
+      $('scjournal').innerHTML = l.length ? l.map(x=>srow(esc((G[x.genre]||x.genre)+' — '+(x.detail||'')), esc((x.at||'').replace('T',' ').slice(0,19)))).join('') : srow('Aucune tentative de sortie enregistrée','le scellé veille en silence');
+    }
+    journal();
+    $('sctest').onclick=async()=>{ $('scout').textContent='vérification…'; try{ const r=await invoke('core_sceau_tester'); $('scout').innerHTML=r.bloque?'<span class="ok">✓ '+esc(r.detail)+'</span>':'<span class="warn">⚠ '+esc(r.detail)+'</span>'; }catch(err){ $('scout').textContent='échec : '+err; } journal(); };
+    async function agents(){
+      let a=[]; try{ a=await invoke('core_agents')||[]; }catch(_){}
+      if(!a.length){ $('scagents').innerHTML=srow('Aucun autre agent scellé','choisis un programme ci-dessous'); return; }
+      $('scagents').innerHTML = a.map((x,i)=>srow(
+        esc(x.nom)+' '+(x.actif?'<span class="ok">scellé</span>':'<span class="warn">levé</span>'),
+        esc(x.exe),
+        '<button class="bt small" data-j="'+i+'">Journal</button> <button class="bt small" data-u="'+i+'">Lever</button>'
+      )).join('');
+      $('scagents').querySelectorAll('[data-u]').forEach(b=>b.onclick=async()=>{
+        const x=a[+b.dataset.u]; b.textContent='…';
+        try{ const r=await invoke('core_agent_unseal',{exe:x.exe}); $('scaddout').innerHTML=r.ok?'<span class="ok">'+esc(r.message)+'</span>':'<span class="warn">'+esc(r.message)+'</span>'; }catch(err){ $('scaddout').textContent='échec : '+err; }
+        agents();
+      });
+      $('scagents').querySelectorAll('[data-j]').forEach(b=>b.onclick=async()=>{
+        const x=a[+b.dataset.j];
+        let l=[]; try{ l=await invoke('core_agent_journal',{exe:x.exe})||[]; }catch(_){}
+        const G={pose:'Scellé',levee:'Levé',bloque:'Sortie bloquée',sortie:'Sortie ouverte'};
+        $('scaddout').innerHTML = l.length ? '<b>'+esc(x.nom)+'</b> — '+l.slice(0,6).map(y=>esc((G[y.genre]||y.genre)+' '+(y.detail||''))).join(' · ') : '<b>'+esc(x.nom)+'</b> — aucune sortie bloquée journalisée';
+      });
+    }
+    agents();
+    $('scadd').onclick=async()=>{
+      $('scaddout').textContent='choix du programme…';
+      let exe=null; try{ exe=await invoke('core_agent_choisir'); }catch(_){}
+      if(!exe){ $('scaddout').textContent=''; return; }
+      $('scaddout').textContent='élévation (Windows va demander l’autorisation)…';
+      try{ const r=await invoke('core_agent_seal',{exe}); $('scaddout').innerHTML=r.ok?'<span class="ok">'+esc(r.message)+'</span>':'<span class="warn">'+esc(r.message)+'</span>'; }catch(err){ $('scaddout').textContent='échec : '+err; }
+      agents(); journal();
+    };
+  }
+  function paneApropos(box){
+    box.innerHTML='<h3>À propos</h3><div class="sgroup">'+srow('Waly','Open source, licence MIT. Aucun compte, aucune télémétrie. Tout tourne sur cette machine.','')+'</div>';
+  }
+
+  async function refreshSceau(){
+    let e={}; try{ e=await invoke('core_sceau_etat'); }catch(_){}
+    const ok=e.disponible && e.privilegie;
+    $('rdlabel').classList.toggle('brise', !ok);
+    const x = cerveau.mode!=='local' ? extActif() : null;
+    let ps=[]; try{ ps=((await invoke('core_passerelles'))||{}).passerelles||[]; }catch(_){}
+    let pa=null; try{ pa=await invoke('core_partage'); }catch(_){}
+    const sorties=[x?x.hote:null, ps.length?'Telegram':null, pa&&pa.relais?'relais de partage':null].filter(Boolean);
+    $('rdtext').textContent = !ok ? 'réseau non scellé — réparer' : (sorties.length ? 'Scellé · sortie ouverte : '+sorties.join(', ') : 'Local · rien ne sort');
+  }
+
+  // ── appel (voix / video) — la Maree plein ecran ───────────────────────
+  let appelActif=false, voixActif=false, selfPoll=null, captPoll=null, appelPoll=null, lastHistLen=-1;
+  const pres={present:false, attentif:null};
+  function presTexte(){ if(!pres.present) return 'personne dans le champ'; let t='te voit'; if(pres.attentif!==null) t+=pres.attentif?' · attentif':' · ailleurs'; return t; }
+  function renderPres(){
+    $('preschip').hidden=!appelActif; $('presdot').className='dot'+(pres.present?' travail':'');
+    if(appelActif) $('prestxt').textContent=pres.present?presTexte():'caméra active';
+    $('ccam').classList.toggle('on', appelActif);
+    $('calltitle').textContent = (appelActif ? 'Appel vidéo · ' : 'Appel · ') + (titles[currentId] || 'Conversation');
+    if(appelActif) $('callstate').textContent=presTexte();
+  }
+  (function(){
+    const cv=$('calleclipse'); const ctx=cv.getContext('2d'); const dpr=Math.min(2,devicePixelRatio||1); const S=200;
+    cv.width=S*dpr; cv.height=S*dpr; cv.style.width=S+'px'; cv.style.height=S+'px'; ctx.scale(dpr,dpr);
+    const proms=[{a:-2.2,ph:1},{a:-0.6,ph:2},{a:0.9,ph:4},{a:2.5,ph:0}];
+    let pouls={etat:'repos',niveau:0};
+    setInterval(async()=>{ if(!appelActif && !voixActif){ pouls={etat:'repos',niveau:0}; return; } try{ pouls=await invoke('core_appel_pouls'); }catch(e){} },120);
+    const ETATS={repos:{vit:0.18,lobe:1.6,gain:0.06},ecoute:{vit:0.35,lobe:2.6,gain:0.5},reflexion:{vit:1.4,lobe:2.2,gain:0.1},parole:{vit:0.55,lobe:3.0,gain:0.9}};
+    let niveau=0, phase=0, onde=0, lastT=0;
+    function draw(now){
+      requestAnimationFrame(draw);
+      if($('callpage').hidden || now-lastT<33) return;
+      const dt=Math.min(0.1,(now-lastT)/1000); lastT=now;
+      const p=ETATS[pouls.etat]||ETATS.repos, k=S/160;
+      niveau+=((pouls.niveau*p.gain)-niveau)*0.10; phase+=dt*p.vit; onde+=dt*(pouls.etat==='parole'?5.5:1.2);
+      const cx=S/2, cy=S/2, vis=pres.present||!appelActif;
+      const Rm=S*0.30*(1+0.05*niveau);
+      const ring=dark()?'#EDEDED':'#111111', inte=dark()?'#101010':'#FFFFFF', pr=dark()?'235,235,235':'90,90,90';
+      ctx.clearRect(0,0,S,S);
+      const halo=0.08+(pres.attentif?0.05:0)+0.10*niveau;
+      const g=ctx.createRadialGradient(cx,cy,Rm*0.8,cx,cy,Rm*1.6); g.addColorStop(0,'rgba('+pr+','+halo.toFixed(3)+')'); g.addColorStop(1,'rgba('+pr+',0)');
+      ctx.fillStyle=g; ctx.beginPath(); ctx.arc(cx,cy,Math.min(S/2,Rm*1.6),0,7); ctx.fill();
+      ctx.globalAlpha=vis?1:0.45;
+      const lobe=p.lobe*k*(0.7+1.3*niveau);
+      ctx.fillStyle=inte; ctx.beginPath();
+      for(let i=0;i<=72;i++){ const a=i/72*Math.PI*2; let r=Rm+lobe*Math.sin(a*2+phase); r+=(pouls.etat==='parole'?3.2:0.8)*k*niveau*Math.sin(a*6-onde*3); const x=cx+Math.cos(a)*r, y=cy+Math.sin(a)*r; if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y); }
+      ctx.closePath(); ctx.fill(); ctx.lineWidth=2.4; ctx.strokeStyle=ring; ctx.stroke();
+      for(const q of proms){ const fl=0.8+0.2*Math.sin(now/1000+q.ph)+0.5*niveau, px=cx+Math.cos(q.a)*Rm, py=cy+Math.sin(q.a)*Rm, r=4.2*k*fl;
+        const gg=ctx.createRadialGradient(px,py,0,px,py,r); gg.addColorStop(0,'rgba('+pr+',0.9)'); gg.addColorStop(1,'rgba('+pr+',0)'); ctx.fillStyle=gg; ctx.beginPath(); ctx.arc(px,py,r,0,7); ctx.fill(); }
+      ctx.globalAlpha=1;
+    }
+    requestAnimationFrame(draw);
+  })();
+  async function refreshCaptions(){
+    if(!appelActif && !voixActif) return;
+    try{ const [, h]=await invoke('core_history'); let you='', waly='';
+      for(const [role, content] of h){ if(role==='user') you=content.replace(/^\[[^\]]*\]\s*/,''); else waly=content; }
+      $('captyou').textContent=you; $('captwaly').textContent=waly; }catch(e){}
+  }
+  function openCall(){
+    $('callpage').hidden=false;
+    if(appelActif && !selfPoll) selfPoll=setInterval(async()=>{ try{ $('selfview').src=await invoke('core_appel_cliche'); $('selfview').classList.add('on'); }catch(e){ $('selfview').classList.remove('on'); } },150);
+    if(!appelActif){ $('selfview').classList.remove('on'); if(selfPoll){ clearInterval(selfPoll); selfPoll=null; } }
+    if(!captPoll){ captPoll=setInterval(refreshCaptions,1000); refreshCaptions(); }
+    renderPres();
+  }
+  function closeCall(){
+    $('callpage').hidden=true;
+    if(selfPoll){ clearInterval(selfPoll); selfPoll=null; }
+    if(captPoll){ clearInterval(captPoll); captPoll=null; }
+  }
+  async function startVoix(){
+    if(voixActif || appelActif){ openCall(); return; }
+    try{ await invoke('core_voix_start'); voixActif=true; $('callstate').textContent='je t’écoute'; closePage(); openCall(); }
+    catch(e){ flash('voix indisponible : '+e, 6000); }
+  }
+  async function stopVoix(){ try{ await invoke('core_voix_stop'); }catch(e){} voixActif=false; $('callstate').textContent=''; }
+  async function startAppel(){
+    const chan=new T.core.Channel();
+    chan.onmessage=(ev)=>{ if(ev.type==='arrivee') pres.present=true; else if(ev.type==='depart'){ pres.present=false; pres.attentif=null; } else if(ev.type==='attention') pres.attentif=ev.vers_ecran; renderPres(); };
+    try{
+      await invoke('core_appel_start',{chan}); appelActif=true; closePage();
+      lastHistLen=-1;
+      appelPoll=setInterval(async()=>{ if(busy || !appelActif || enMission()) return; try{ const [cur,h]=await invoke('core_history'); if(cur===currentId && h.length!==lastHistLen){ if(lastHistLen>=0) renderHistory(h); lastHistLen=h.length; } }catch(e){} },2500);
+      openCall();
+    }catch(e){ flash('caméra indisponible : '+e, 6000); }
+  }
+  async function stopAppel(){
+    try{ await invoke('core_appel_stop'); }catch(e){}
+    appelActif=false; pres.present=false; pres.attentif=null;
+    if(appelPoll){ clearInterval(appelPoll); appelPoll=null; }
+    renderPres();
+  }
+  on('micbtn', startVoix);
+  // Passer en video / revenir a la voix (un seul micro : l'un s'arrete avant l'autre).
+  on('ccam', async ()=>{
+    if(appelActif){ await stopAppel(); await startVoix(); }
+    else { await stopVoix(); await startAppel(); }
+    openCall();
+  });
+  let muted=false;
+  on('cmute', async ()=>{ muted=!muted; $('cmute').classList.toggle('off',muted); try{ await invoke('core_ecran_mute',{muted}); }catch(e){} });
+  on('reduire', closeCall);
+  on('hangup', async ()=>{
+    if(appelActif) await stopAppel(); if(voixActif) await stopVoix(); closeCall(); refreshSessions();
+    // Le prochain appel repart micro ouvert.
+    if(muted){ muted=false; $('cmute').classList.remove('off'); try{ await invoke('core_ecran_mute',{muted:false}); }catch(e){} }
+  });
+  // Veille « Waly » retiree (decision Michee 2026-09-14) : plus de sondage
+  // d'eveil — le micro ne s'allume que par l'appel ou la dictee.
+
+  document.addEventListener('keydown', e=>{
+    if(e.key==='Escape'){
+      if(!$('dlgveil').hidden) return; // le dialogue gere son Echap
+      if(!$('callpage').hidden){ closeCall(); return; }
+      if(!$('viewer').hidden){ closeViewer(); return; }
+      closeMenus(); return;
+    }
+    if((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==='k'){ e.preventDefault(); const f=$('sfield'); f.classList.add('on'); $('sinput').focus(); }
+  });
+
+  // ── demarrage ─────────────────────────────────────────────────────────
+  async function load(){
+    try{ const [cur, h]=await invoke('core_history'); currentId=cur; renderHistory(h); }catch(e){ renderHistory([]); }
+    await refreshSessions(); setPlaceholder(); refreshPlus(); majBouton(); refreshProjetTitre();
+    invoke('core_reglages').then(r=>{ styleCourant=r.style||'normal'; marquerStyle(); reflexionOn=!!r.reflexion; marquerReflexion(); }).catch(()=>{});
+    await refreshWaits(); refreshSceau(); refreshRappels();
+    await majCerveau();
+    let vu=null; try{ vu=localStorage.getItem('waly-materiel-vu'); }catch(e){}
+    if(!vu){ try{ const r=await invoke('core_materiel'); if(r.premier) openSettings('modeles'); }catch(e){} }
+    setInterval(refreshWaits, 5000);
+  }
+  load();
+})();
+</script>
+</body>
+</html>

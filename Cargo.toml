@@ -1,0 +1,40 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/waly-core",
+    "crates/waly-seal",
+    "crates/waly-voice",
+    "crates/waly-sight",
+    "crates/waly-relais",
+    "apps/desktop/src-tauri",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+repository = "https://github.com/Michee-007/waly"
+
+[workspace.dependencies]
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "time", "sync"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror = "2"
+tracing = "0.1"
+# Capture/lecture audio (service voix uniquement, feature "service")
+cpal = "0.16"
+hound = "3.5"
+# ONNX Runtime en chargement dynamique : onnxruntime.dll officielle (signee
+# Microsoft -> passe SAC), jamais de link statique. VAD Silero, puis Parakeet.
+ort = { version = "=2.0.0-rc.9", default-features = false, features = ["load-dynamic", "ndarray"] }
+# FFI runtime vers sherpa-onnx-c-api.dll (non signee mais les DLL passent SAC,
+# teste 2026-07-03) : Parakeet STT + Piper TTS sans compiler de C++.
+libloading = "0.8"
+chrono = { version = "0.4", default-features = false, features = ["clock"] }
+# SQLite embarque (sqlite3.c compile par cc/mingw depuis WSL : build-script ELF,
+# hors de portee de SAC) + extension vectorielle sqlite-vec, liee statiquement.
+rusqlite = { version = "0.32", features = ["bundled"] }
+sqlite-vec = "0.1"
+# Tokenizer HF en PUR Rust (fancy-regex, pas d'onig/esaxx C++ — piège 3) :
+# lit le tokenizer.json unigram XLM-R du modèle d'embedding.
+tokenizers = { version = "0.21", default-features = false, features = ["fancy-regex"] }

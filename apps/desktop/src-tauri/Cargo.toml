@@ -1,0 +1,28 @@
+[package]
+name = "waly-desktop"
+version = "0.1.0"
+description = "Waly — desktop"
+edition = "2021"
+
+[lib]
+name = "waly_desktop_lib"
+# rlib SEUL (piege 9 CLAUDE.md) : le cdylib du template Tauri fait echouer le
+# linker BFD de mingw (export ordinal too large). En rlib, le bin EXE linke
+# sans table d'exports -> build + lancement OK sous SAC via WSL->windows-gnu.
+crate-type = ["rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+# waly-core in-process (le Socle) : chat outille, memoire, taches, rappels, surete.
+waly-core = { path = "../../../crates/waly-core" }
+# rusqlite : on nomme rusqlite::Connection (type public de waly-core). Meme
+# version/features que le workspace (bundled) -> unification, un seul sqlite.
+rusqlite = { workspace = true }
+# L'oeil (R4 mode appel) : boucle de perception (evenements presence/
+# attention/expression) + cliche 640px JPEG pour le moment VLM.
+waly-sight = { path = "../../../crates/waly-sight", features = ["mains"] }

@@ -1,0 +1,42 @@
+# waly.toml — configuration declaree de Waly (optionnelle).
+# A copier vers C:\waly\data\waly.toml (ou la ou WALY_CONFIG pointe).
+# Priorite : variable d'environnement > waly.toml > defaut/sonde.
+# Sous-ensemble TOML : sections, cle = valeur (chaine "..." ou '...',
+# nombre, booleen). Chemins Windows : entre apostrophes '...' (litteral,
+# aucun echappement) — ou doubler les barres dans "..." ("C:\\waly").
+
+[llm]
+# Tout serveur OpenAI-compatible LOCAL (loopback seulement — huis clos) :
+# FastFlowLM, Ollama, llama.cpp server, LM Studio...
+# Sans `port`, Waly sonde : 42626 (moteur A) puis 11434 (Ollama standard).
+# port = 11434
+# modele = "qwen3vl-it:4b"
+# Vision adaptative : si le cerveau ne voit pas (ex. modele texte seul),
+# un modele vision regarde les images et les decrit au cerveau.
+# Sans cette ligne : Waly demande au moteur ce que sait faire le cerveau.
+# modele_vision = "gemma3:4b"
+
+[utilisateur]
+# Prenom utilise dans les prompts ; sans lui, formulations neutres.
+# nom = "Camille"
+
+[stockage]
+# Chemin de la base SQLite (memoire, sessions, competences apprises).
+# base = 'C:\waly\data\waly.db'
+
+# Serveurs MCP (outils de la communaute, transport stdio seulement).
+# Un serveur tourne HORS du sceau reseau : chaque appel demande ton
+# approbation, sauf confiance = "lecture" (a reserver aux serveurs surs).
+# ADR : docs/ADR-2026-09-10-client-mcp-stdio.md
+#
+# [mcp.demo]
+# commande = 'C:\Python314\python.exe'
+# arg1 = 'C:\waly\lab\mcp-banc\serveur_demo.py'
+# confiance = "lecture"
+#
+# [mcp.fichiers]
+# commande = 'npx.cmd'
+# arg1 = '-y'
+# arg2 = '@modelcontextprotocol/server-filesystem'
+# arg3 = 'C:\Users\toi\Documents'
+# outils = "read_text_file,list_directory,search_files"

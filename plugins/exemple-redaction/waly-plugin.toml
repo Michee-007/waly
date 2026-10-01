@@ -1,0 +1,24 @@
+# Plugin d'exemple pour Waly — voir crates/waly-core/src/plugins.rs.
+# Installer : Personnaliser > Plugins > « Installer depuis un dossier… »,
+# puis choisir ce fichier.
+
+[plugin]
+nom = "Aide à la rédaction"
+description = "Relire, résumer et reformuler un texte avec une méthode stable."
+version = "1.0.0"
+
+[competence.relire]
+titre = "Relire et corriger un texte"
+declencheur = "quand on demande de relire, corriger ou vérifier l'orthographe d'un texte"
+recette = "1. Lire le texte en entier avant de corriger. 2. Corriger orthographe, grammaire et ponctuation sans changer le sens. 3. Rendre le texte corrigé, puis lister en trois points maximum les corrections importantes."
+
+[competence.resumer]
+titre = "Résumer un document"
+declencheur = "quand on demande de résumer un texte, un document ou une conversation"
+recette = "1. Repérer l'idée principale et les trois à cinq points clés. 2. Écrire un résumé qui fait au plus un quart de la longueur d'origine. 3. Finir par ce qui reste à décider ou à faire, s'il y en a."
+
+# Un connecteur se déclare comme dans waly.toml ; il demandera TOUJOURS
+# ton accord à chaque appel. Exemple (désactivé) :
+# [mcp.outil]
+# commande = "node"
+# arg1 = "serveur.js"

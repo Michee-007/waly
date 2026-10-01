@@ -1,0 +1,5 @@
+# Exclus de `git archive` = exclus du depot PUBLIC (lab/publication/regenerer.sh).
+# Le journal de construction reste prive ; les scripts de publication
+# contiennent des motifs personnels (chemin de profil, e-mail) a filtrer.
+docs/JOURNAL.md export-ignore
+lab/publication export-ignore

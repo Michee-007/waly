@@ -1,0 +1,31 @@
+[package]
+name = "waly-voice"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+tracing.workspace = true
+cpal = { workspace = true, optional = true }
+hound = { workspace = true, optional = true }
+ort = { workspace = true, optional = true }
+libloading = { workspace = true, optional = true }
+chrono = { workspace = true, optional = true }
+# Le cerveau (R2) : boucle agentique outillee, memoire SQLite, approbations.
+waly-core = { path = "../waly-core", optional = true }
+rusqlite = { workspace = true, optional = true }
+
+[features]
+# La lib reste pure (testable partout) ; le binaire service embarque l'audio.
+service = [
+    "dep:cpal", "dep:hound", "dep:ort", "dep:libloading", "dep:chrono",
+    "dep:waly-core", "dep:rusqlite",
+]
+
+[[bin]]
+name = "waly-voice"
+path = "src/bin/waly-voice.rs"
+required-features = ["service"]

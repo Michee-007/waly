@@ -1,0 +1,40 @@
+[package]
+name = "waly-seal"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+# R6a « Huis clos » — le SERVICE scelleur (SYSTEM). Detient le moteur WFP
+# (fwpuclnt.dll, DLL systeme signee -> SAC-safe, piege n3), expose un IPC
+# named-pipe ETROIT (sceller/desceller/journal/etat MA session, jamais un
+# filtre brut du client). Isole du reste : windows-sys lourd ne remonte pas
+# dans waly-core (le client parle au pipe via std::fs).
+#
+# Voie d'elevation RETENUE (decision 2026-07-20, entinee Michee) : privilege
+# dans SYSTEM, filtres possedes SYSTEM, fail-closed. Le FFI WFP est celui
+# VALIDE au banc lab/huisclos-banc (3 gates verts).
+
+[[bin]]
+name = "waly-seal-svc"
+path = "src/bin/waly-seal-svc.rs"
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+windows-sys = { version = "0.59", features = [
+    "Win32_Foundation",
+    "Win32_NetworkManagement_WindowsFilteringPlatform",
+    "Win32_Security",
+    "Win32_Security_Authorization",
+    "Win32_System_Rpc",
+    "Win32_System_Services",
+    "Win32_System_Threading",
+    "Win32_System_Memory",
+    "Win32_Storage_FileSystem",
+    "Win32_System_IO",
+    "Win32_System_Pipes",
+] }
+
+# Piege 3 (SAC) : les release non signes se font bloquer, les debug passent.
+# Le service final SERA signe (prerequis distribution) ; en dev on tourne debug
+# (profil geree au workspace racine).

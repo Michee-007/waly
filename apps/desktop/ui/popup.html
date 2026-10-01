@@ -1,0 +1,220 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Waly — Écran</title>
+<style>
+  :root{ --bg:#FBFBFA; --ink:#161618; --faint:#8A8A90; --line:#E6E6E3; --card:#FFFFFF; }
+  @media (prefers-color-scheme:dark){
+    :root{ --bg:#0D0E10; --ink:#F2F3F6; --faint:#9195A0; --line:#26272B; --card:#17181B; }
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;background:transparent;overflow:hidden;
+    font-family:-apple-system,"Segoe UI",Roboto,system-ui,sans-serif;color:var(--ink)}
+  .card{position:fixed;inset:6px;border-radius:20px;background:var(--card);
+    border:1px solid var(--line);box-shadow:0 14px 40px rgba(0,0,0,.32);
+    display:flex;flex-direction:column;overflow:hidden}
+  /* Tête : moniteur + cible (poignée de déplacement) + Stop. */
+  .head{display:flex;align-items:center;gap:9px;padding:11px 11px 7px 14px}
+  .drag{display:flex;align-items:center;gap:9px;flex:1;min-width:0}
+  .mon{font-size:15px;flex:none}
+  .lab{font-size:12.5px;font-weight:600;white-space:nowrap}
+  .tgt{font-size:11px;color:var(--faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:150px}
+  .stop{font:inherit;font-size:12px;border:1px solid var(--line);background:transparent;color:var(--ink);
+    border-radius:11px;padding:5px 13px;cursor:pointer;-webkit-app-region:no-drag}
+  .stop:hover{background:#E0523E;color:#fff;border-color:#E0523E}
+  /* Rangée d'icônes rondes (façon Copilot). */
+  .icons{display:flex;align-items:center;justify-content:center;gap:10px;padding:2px 12px 12px}
+  .ib{width:40px;height:40px;border-radius:50%;border:1px solid var(--line);background:transparent;
+    display:flex;align-items:center;justify-content:center;font-size:17px;cursor:pointer;
+    -webkit-app-region:no-drag;position:relative;color:var(--ink)}
+  .ib:hover{background:rgba(128,128,128,.13)}
+  .ib.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+  /* Micro barré quand coupé. */
+  .ib.muted{color:#E0523E;border-color:#E0523E}
+  .ib.muted::after{content:"";position:absolute;left:8px;right:8px;top:50%;height:2px;
+    background:#E0523E;transform:rotate(-45deg)}
+  /* « Regarde-moi » (B3) : l'indicateur DOIT se voir — rouge plein tant que
+     Waly regarde (session ouverte et fermée par l'utilisateur, jamais seule). */
+  .ib.rec{background:#E0523E;color:#fff;border-color:#E0523E}
+  .recbar{display:none;font-size:11.5px;color:#E0523E;text-align:center;padding:0 12px 10px}
+  body.recording .recbar{display:block}
+  /* Corps (caché en mode voix compact) : chat OU sélecteur de fenêtre. */
+  .body{display:none;flex-direction:column;flex:1;min-height:0;border-top:1px solid var(--line)}
+  body.expanded .body{display:flex}
+  .thread{flex:1;overflow-y:auto;padding:10px 12px;display:flex;flex-direction:column;gap:8px;min-height:0}
+  .msg{font-size:13px;line-height:1.4;max-width:88%;padding:7px 10px;border-radius:12px}
+  .msg.you{align-self:flex-end;background:var(--ink);color:var(--bg)}
+  .msg.waly{align-self:flex-start;background:rgba(128,128,128,.13)}
+  .composer{display:flex;padding:8px}
+  .composer input{flex:1;font:inherit;font-size:13px;border:1px solid var(--line);background:transparent;
+    color:var(--ink);border-radius:10px;padding:8px 11px;outline:none;-webkit-app-region:no-drag}
+  .pick{padding:8px;overflow-y:auto;flex:1;min-height:0}
+  .pick .h{font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--faint);padding:4px 8px}
+  .pick .etape{font-size:12.5px;line-height:1.35;padding:5px 8px;border-bottom:1px solid var(--line)}
+  .pick .note{font-size:12px;color:var(--faint);padding:8px}
+  .pick button{display:block;width:100%;text-align:left;font:inherit;font-size:13px;border:none;
+    background:transparent;color:var(--ink);border-radius:9px;padding:8px 10px;cursor:pointer;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;-webkit-app-region:no-drag}
+  .pick button:hover{background:rgba(128,128,128,.13)}
+  .chat,.picker{display:none;flex-direction:column;flex:1;min-height:0}
+  body.mode-chat .chat{display:flex}
+  body.mode-pick .picker{display:flex}
+</style>
+</head>
+<body>
+  <div class="card">
+    <div class="head">
+      <div class="drag" data-tauri-drag-region>
+        <span class="mon" data-tauri-drag-region>🖥️</span>
+        <span class="lab" data-tauri-drag-region>Écran</span>
+        <span class="tgt" id="tgt" data-tauri-drag-region>tout l'écran</span>
+      </div>
+      <button class="stop" id="stop" title="Arrêter le partage">Stop</button>
+    </div>
+    <div class="icons">
+      <button class="ib" id="chat" title="Conversation">💬</button>
+      <button class="ib" id="eye" title="Regarder (choisir écran ou fenêtre)">👁</button>
+      <button class="ib" id="regarde" title="Regarde-moi faire : montre une tâche, Waly l'apprend">◉</button>
+      <button class="ib" id="mic" title="Couper le micro">🎙</button>
+    </div>
+    <div class="recbar" id="recbar">● Waly te regarde faire — clics et raccourcis en texte, jamais d'image</div>
+    <div class="body">
+      <div class="chat">
+        <div class="thread" id="thread"></div>
+        <div class="composer"><input id="inp" placeholder="Écris à Waly…" autocomplete="off" /></div>
+      </div>
+      <div class="picker">
+        <div class="pick" id="pick"><div class="h">Regarder…</div></div>
+      </div>
+    </div>
+  </div>
+
+<script>
+  const T = window.__TAURI__;
+  const invoke = T.core.invoke;
+  const win = T.window.getCurrentWindow();
+  const $ = (id)=>document.getElementById(id);
+
+  // ── Éclipse dans l'icône ? Non : on garde le pouls pour l'état, pas de canvas.
+  // (Pastille compacte façon Copilot — l'éclipse vit dans la page d'appel voix.)
+
+  // ── Conversation (sondée) ──
+  let lastLen=-1;
+  function render(msgs){
+    const th=$('thread'); th.innerHTML='';
+    for(const [role,content] of msgs){
+      const d=document.createElement('div'); d.className='msg '+(role==='user'?'you':'waly');
+      d.textContent=content; th.appendChild(d);
+    }
+    th.scrollTop=th.scrollHeight;
+  }
+  async function poll(){ try{ const [,m]=await invoke('core_history'); if(m.length!==lastLen){ lastLen=m.length; render(m); } }catch(e){} }
+  setInterval(poll, 1200); poll();
+
+  // ── Envoi (chat + Regarder) ──
+  let busy=false;
+  async function send(v){ if(!v||busy) return; busy=true;
+    const chan=new T.core.Channel(); chan.onmessage=()=>poll();
+    try{ await invoke('core_send',{message:v,chan}); }catch(e){}
+    busy=false; poll();
+  }
+  $('inp').addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); const v=$('inp').value.trim(); $('inp').value=''; send(v);} });
+
+  // ── Tailles / états (voix compact, chat, sélecteur) — reposition bas fixe ──
+  const W=340, HV=98, HR=24, HC=440, HP=300;
+  function curH(){
+    const base = document.body.classList.contains('mode-chat')?HC:(document.body.classList.contains('mode-pick')?HP:HV);
+    return base + (document.body.classList.contains('recording')?HR:0);
+  }
+  async function resize(from){
+    const to=curH();
+    try{ const sf=await win.scaleFactor(); const p=await win.outerPosition();
+      let y=p.y/sf-(to-from); if(y<0)y=0;
+      await win.setSize(new T.window.LogicalSize(W,to));
+      await win.setPosition(new T.window.LogicalPosition(p.x/sf,y));
+    }catch(e){}
+  }
+  async function setState(mode){ // '', 'chat', 'pick'
+    const from=curH();
+    document.body.classList.remove('mode-chat','mode-pick','expanded');
+    if(mode==='chat'){ document.body.classList.add('mode-chat','expanded'); }
+    else if(mode==='pick'){ document.body.classList.add('mode-pick','expanded'); }
+    $('chat').classList.toggle('on', mode==='chat');
+    await resize(from);
+    if(mode==='chat'){ poll(); $('inp').focus(); }
+  }
+
+  // ── 💬 Chat ──
+  $('chat').addEventListener('click', ()=> setState(document.body.classList.contains('mode-chat')?'':'chat'));
+
+  // ── 👁 Regarder : ouvre le sélecteur (tout l'écran / une fenêtre) ──
+  async function look(hwnd, label){
+    try{ await invoke('core_ecran_cible',{hwnd}); }catch(e){}
+    $('tgt').textContent = label;
+    await setState('chat');        // ouvre le chat pour VOIR la réponse
+    send("Décris ce que tu vois à l'écran.");   // lit la cible + décrit
+  }
+  $('eye').addEventListener('click', async ()=>{
+    if(document.body.classList.contains('mode-pick')){ setState(''); return; }
+    const box=$('pick'); box.innerHTML='<div class="h">Regarder…</div>';
+    const all=document.createElement('button'); all.textContent='🖥️  Tout l’écran';
+    all.onclick=()=>look(0,'tout l’écran'); box.appendChild(all);
+    let wins=[]; try{ wins=await invoke('core_ecran_fenetres'); }catch(e){}
+    for(const [h,title] of wins){
+      const b=document.createElement('button'); b.textContent='🗔  '+title;
+      b.onclick=()=>look(h, title); box.appendChild(b);
+    }
+    setState('pick');
+  });
+
+  // ── ◉ Regarde-moi (B3) : l'utilisateur OUVRE et FERME la session ──
+  let recording=false;
+  async function setRecording(on){
+    const from=curH();
+    recording=on;
+    document.body.classList.toggle('recording', on);
+    $('regarde').classList.toggle('rec', on);
+    $('regarde').title = on ? 'Arrêter : Waly apprend ce que tu viens de montrer' : 'Regarde-moi faire : montre une tâche, Waly l\'apprend';
+    await resize(from);
+  }
+  function montrerEtapes(etapes){
+    const box=$('pick'); box.innerHTML='';
+    const h=document.createElement('div'); h.className='h';
+    h.textContent = etapes.length ? 'Ce que j’ai vu ('+etapes.length+' étapes)' : 'Rien vu';
+    box.appendChild(h);
+    for(const e of etapes){ const d=document.createElement('div'); d.className='etape'; d.textContent=e; box.appendChild(d); }
+    const n=document.createElement('div'); n.className='note';
+    n.textContent = etapes.length
+      ? 'J’en tire une compétence (en fond). Redemande-moi la tâche : je la referai avec toi, chaque geste approuvé.'
+      : 'Aucun clic ni raccourci observé hors de Waly.';
+    box.appendChild(n);
+    setState('pick');
+  }
+  $('regarde').addEventListener('click', async ()=>{
+    if(!recording){
+      try{ await invoke('core_regarde_start'); await setRecording(true); }
+      catch(e){ montrerEtapes([]); }
+    } else {
+      let etapes=[];
+      try{ etapes = await invoke('core_regarde_stop'); }catch(e){}
+      await setRecording(false);
+      montrerEtapes(etapes||[]);
+    }
+  });
+
+  // ── 🎙 Mute (micro barré quand coupé) ──
+  let muted=false;
+  $('mic').addEventListener('click', async ()=>{
+    muted=!muted;
+    $('mic').classList.toggle('muted', muted);
+    $('mic').title = muted ? 'Micro coupé — cliquer pour réactiver' : 'Couper le micro';
+    try{ await invoke('core_ecran_mute',{muted}); }catch(e){}
+  });
+
+  // ── Stop = arrêter le partage (ferme aussi une session regarde-moi) ──
+  $('stop').addEventListener('click', async ()=>{ try{ await invoke('core_ecran_stop'); }catch(e){} });
+</script>
+</body>
+</html>

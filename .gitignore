@@ -1,0 +1,60 @@
+target/
+node_modules/
+dist/
+*.log
+.env
+# Jeton Hugging Face (acces aux voix officielles Pocket TTS) - JAMAIS en git
+.hf-token
+# Binaires et artefacts moteurs (vivent dans C:\waly\engines, jamais en git)
+engines/flm/
+engines/llama/
+engines/models/
+engines/*.log
+engines/bench-*.json
+# Images de banc R4 — bench-cam-frame.png est une VRAIE frame caméra
+# (piece de Michee) : jamais en git.
+engines/bench-*.png
+engines/bench-*.jpg
+engines/watch-*.txt
+engines/voice-bench/
+engines/sherpa/
+# Serveurs MCP installes localement (npm --prefix) : jamais en git
+engines/mcp/
+# Binaires installes a la racine (C:\waly\bin) — ANCRE : sans le slash de
+# tete, ce motif ignorait aussi crates/*/src/bin/ (vecu : waly.rs jamais
+# commite).
+/bin/
+# Base de donnees locale (souvenirs, notes, historique) - JAMAIS en git
+/data/
+# Copie de reference de l'ancien monde React dans apps/desktop (source de
+# verite : ~/waly-desktop, regle 8 CLAUDE.md) - jamais en git, a purger un
+# jour. Le desktop NEUF = src-tauri/, ui/, e2e/, installer/ seulement.
+apps/desktop/src/
+apps/desktop/tests/
+apps/desktop/public/
+apps/desktop/docs/
+apps/desktop/index.html
+apps/desktop/package.json
+apps/desktop/package-lock.json
+apps/desktop/tsconfig*.json
+apps/desktop/vite.config.ts
+apps/desktop/scripts/
+apps/desktop/ds-bundle/
+apps/desktop/README.md
+# Artefacts d'outillage IA locaux (sessions Claude/DesignSync) - jamais en git
+.claude/
+.remember/
+.ds-sync/
+.design-sync/
+.superpowers/
+.vscode/
+
+# Modeles entraines localement et donnees d'enrollment (peuvent deriver de la
+# voix reelle de l'utilisateur = biometrie) - JAMAIS en git.
+lab/**/*.onnx
+lab/**/*.wav
+lab/**/enroll*/
+lab/**/corpus*/
+
+# Anciennes versions de FLM mises de cote (binaires tiers, jamais en git)
+/engines/flm-*/

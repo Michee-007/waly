@@ -1,0 +1,104 @@
+<title>Waly — l'éclipse (épurée)</title>
+<style>
+  :root{ --ground:#ECE9F0;--panel:#F7F4F9;--ink:#1A1820;--ink-soft:#544F60;--ink-faint:#8A8496;--line:#DBD4E2;color-scheme:light; }
+  :root[data-theme="dark"]{ --ground:#0B0A0E;--panel:#141218;--ink:#EFEAF2;--ink-soft:#A9A2B6;--ink-faint:#6E6879;--line:#221E2A;color-scheme:dark; }
+  *{box-sizing:border-box} html,body{margin:0}
+  body{background:var(--ground);color:var(--ink);font-family:ui-sans-serif,-apple-system,"Segoe UI",system-ui,sans-serif;line-height:1.55;-webkit-font-smoothing:antialiased;padding:clamp(22px,5vw,68px) clamp(16px,5vw,40px)}
+  .wrap{max-width:1000px;margin:0 auto}
+  .serif{font-family:"Iowan Old Style",Georgia,"Times New Roman",serif}
+  .mono{font-family:ui-monospace,"SF Mono","Cascadia Mono",monospace}
+  .eyebrow{font-size:12px;letter-spacing:.24em;text-transform:uppercase;color:#C81E4E;font-weight:600}
+  h1{font-family:"Iowan Old Style",Georgia,serif;font-weight:600;font-size:clamp(30px,5vw,50px);line-height:1.08;letter-spacing:-.015em;text-wrap:balance;margin:.35em 0 .3em}
+  .lede{max-width:60ch;color:var(--ink-soft);font-size:clamp(15px,1.6vw,17.5px)} .lede b{color:var(--ink);font-weight:600}
+  .duo{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:30px}
+  .scene{border:1px solid var(--line);border-radius:20px;overflow:hidden}
+  .scene .cw{display:flex;align-items:center;justify-content:center;padding:10px}
+  .scene canvas{width:420px;height:420px;max-width:100%}
+  .foot{display:flex;align-items:center;justify-content:center;gap:12px;padding:0 16px 16px;flex-wrap:wrap}
+  .foot .tag{font-family:ui-monospace,monospace;font-size:11px;letter-spacing:.14em;text-transform:uppercase}
+  .state{display:inline-flex;gap:7px;align-items:center;font-family:ui-monospace,monospace;font-size:11.5px;letter-spacing:.05em}
+  .state .live{width:7px;height:7px;border-radius:50%}
+  .note{margin-top:26px;padding:18px 22px;border:1px solid var(--line);border-radius:14px;background:var(--panel)}
+  .note p{margin:.25em 0;color:var(--ink-soft);font-size:14px} .note b{color:var(--ink)}
+  @media (max-width:680px){ .duo{grid-template-columns:1fr} }
+</style>
+
+<div class="wrap">
+  <div class="eyebrow">Waly · présence · épurée</div>
+  <h1 class="serif">Juste le disque et les roses.</h1>
+  <p class="lede">Sans filaments, sans aura, sans brillance. Un disque net, les <b>protubérances roses</b>
+  au bord — et son inverse. Vivant discrètement : les roses <b>frémissent</b> et réagissent
+  (repos → écoute → réflexion → parole).</p>
+
+  <div class="duo">
+    <div class="scene" style="background:#FFFFFF">
+      <div class="cw"><canvas data-mode="black" aria-label="Disque noir sur blanc"></canvas></div>
+      <div class="foot"><span class="tag" style="color:#8A7060">Noir sur blanc</span>
+        <span class="state" style="color:#6A6472"><span class="live" style="background:#C81E4E"></span><span data-label>repos</span></span></div>
+    </div>
+    <div class="scene" style="background:#000000">
+      <div class="cw"><canvas data-mode="white" aria-label="Disque blanc sur noir"></canvas></div>
+      <div class="foot"><span class="tag" style="color:#9A93A6">Blanc sur noir</span>
+        <span class="state" style="color:#A9A2B6"><span class="live" style="background:#FF5E96"></span><span data-label>repos</span></span></div>
+    </div>
+  </div>
+
+  <div class="note">
+    <p><b>Nouveau parti</b> : l'intérieur se fond dans le fond, seul le <b>bord épais</b> dessine l'anneau. Dis-moi l'épaisseur idéale du bord, la taille de l'anneau, et la vivacité des roses.</p>
+    <p class="mono" style="color:var(--ink-faint);font-size:12.5px;margin-top:8px">Quand c'est bon, on fige et on passe à l'app.</p>
+  </div>
+</div>
+
+<script>
+(function(){
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const STATES=[['repos','idle',3400],['écoute','listen',2600],['réflexion','think',2600],['parole','speak',2800]];
+  function stateAt(t,seed){ const tot=STATES.reduce((a,s)=>a+s[2],0); let x=((t+seed)%tot+tot)%tot;
+    for(const s of STATES){ if(x<s[2]) return {name:s[0],k:s[1]}; x-=s[2]; } return {name:'repos',k:'idle'}; }
+  function rng(seed){ let s=seed>>>0; return ()=>{ s=(s*1664525+1013904223)>>>0; return s/4294967296; }; }
+
+  const canvases=[...document.querySelectorAll('canvas')];
+  const items=canvases.map(cv=>{ const ctx=cv.getContext('2d'); const dpr=Math.min(2,window.devicePixelRatio||1);
+    const S=420; cv.width=S*dpr; cv.height=S*dpr;
+    const white=cv.dataset.mode==='white'; const Rm=S*0.30;
+    const seed=(white?7919:104729)+5; const rnd=rng(seed*3+1); const proms=[];
+    const angs=[-2.35,-1.9,-1.1,0.3,1.2,2.7];
+    for(let i=0;i<angs.length;i++) proms.push({a:angs[i]+(rnd()-0.5)*0.2, s:0.5+rnd()*0.8, ph:rnd()*6.283});
+    const card=cv.closest('.scene');
+    return {ctx,S,dpr,white,Rm,proms,seed,act:0,label:card.querySelector('[data-label]')}; });
+
+  function draw(it,now){
+    const {ctx,S,dpr,white,Rm}=it, cx=S/2, cy=S/2;
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+    ctx.clearRect(0,0,S,S);
+    ctx.fillStyle=white?'#000000':'#FFFFFF'; ctx.fillRect(0,0,S,S);
+
+    const st=stateAt(reduce?600:now, it.seed);
+    if(it.label && it.label.textContent!==st.name) it.label.textContent=st.name;
+    let target = st.k==='idle'?0 : st.k==='listen'?0.5 : st.k==='think'?0.3 : (0.55+0.45*Math.abs(Math.sin(now/360)));
+    it.act += (target - it.act) * (reduce?1:0.05);
+
+    // intérieur = couleur du fond (le disque se fond dans le fond) ;
+    // seul un BORD ÉPAIS dessine le cercle
+    ctx.fillStyle=white?'#000000':'#FFFFFF';
+    ctx.beginPath(); ctx.arc(cx,cy,Rm,0,7); ctx.fill();
+    ctx.lineWidth=10;
+    ctx.strokeStyle=white?'#F2F2F4':'#141414';
+    ctx.beginPath(); ctx.arc(cx,cy,Rm,0,7); ctx.stroke();
+
+    // roses (protubérances) at the limb — small, no aura, gentle flicker
+    for(const p of it.proms){ const flick=0.8+0.2*Math.sin(now/1000+p.ph) + 0.25*it.act;
+      const px=cx+Math.cos(p.a)*Rm, py=cy+Math.sin(p.a)*Rm;
+      const r=(3.2+4.2*p.s)*Math.min(1.4,flick);
+      const pg=ctx.createRadialGradient(px,py,0,px,py,r);
+      if(white){ pg.addColorStop(0,'rgba(255,120,170,0.95)'); pg.addColorStop(0.55,'rgba(255,70,130,0.55)'); pg.addColorStop(1,'rgba(255,70,130,0)'); }
+      else { pg.addColorStop(0,'rgba(214,32,86,0.95)'); pg.addColorStop(0.55,'rgba(200,26,78,0.5)'); pg.addColorStop(1,'rgba(200,26,78,0)'); }
+      ctx.fillStyle=pg; ctx.beginPath(); ctx.arc(px,py,r,0,7); ctx.fill();
+      ctx.strokeStyle=white?'rgba(255,130,175,0.8)':'rgba(190,24,74,0.8)'; ctx.lineWidth=1.3;
+      ctx.beginPath(); ctx.arc(px,py, 1.6+2*p.s, p.a+1.5, p.a+2.9); ctx.stroke();
+    }
+  }
+  function frame(ts){ for(const it of items) draw(it,ts); if(!reduce) requestAnimationFrame(frame); }
+  requestAnimationFrame(frame);
+})();
+</script>

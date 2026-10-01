@@ -1,0 +1,31 @@
+[package]
+name = "eveil-banc"
+version = "0.1.0"
+edition = "2021"
+
+# Banc R6b (2026-07-21) : wake word « Waly » — pipeline openWakeWord ONNX
+# (melspectrogram + speech-embedding Google + classifieur custom) via la
+# onnxruntime.dll signée déjà en place (SAC-safe). Crate AUTONOME hors du
+# workspace : rien de tout ceci ne doit entrer dans l'arbre produit avant
+# les verdicts des gates. Dépend de waly-voice (feature service) pour
+# générer le corpus « Waly » avec Pocket TTS (R-V) et Piper.
+
+[dependencies]
+anyhow = "1"
+hound = "3.5"
+serde_json = "1"
+ort = { version = "=2.0.0-rc.9", default-features = false, features = ["load-dynamic", "ndarray"] }
+# rc.9 laisse ort-sys flotter vers rc.10 dont les bindings ont changé
+# (fn pointers non-Option → 267 erreurs) : pin explicite, comme le lock du
+# workspace principal.
+ort-sys = "=2.0.0-rc.9"
+waly-voice = { path = "../../crates/waly-voice", features = ["service"] }
+
+[workspace]
+
+# Piège 3 (SAC) : les release non signés se font bloquer, les debug passent —
+# profil dev OPTIMISÉ (binaire « debug » aux yeux de SAC, calcul à pleine
+# vitesse), même recette que stt1b-banc.
+[profile.dev]
+opt-level = 3
+debug = true

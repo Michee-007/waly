@@ -1,0 +1,12 @@
+[package]
+name = "waly-relais"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Relais de partage entre deux Waly : des boites d'enveloppes chiffrees, rien d'autre."
+
+# Rust pur, bibliotheque standard + serde_json : se compile et tourne partout
+# (un petit serveur Linux suffit). Le TLS est l'affaire d'un mandataire devant
+# lui (Caddy, nginx) — le relais ecoute en clair sur la boucle locale.
+[dependencies]
+serde_json.workspace = true
