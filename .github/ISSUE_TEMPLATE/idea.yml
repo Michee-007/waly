@@ -1,0 +1,24 @@
+name: Idea or proposal
+description: A feature, a change of behaviour, or a design question.
+title: "[idea] "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: The problem you want solved
+      description: Start from the need, not the solution.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What you propose
+  - type: checkboxes
+    id: invariants
+    attributes:
+      label: Privacy invariants
+      description: Waly's rules are not negotiable (see CONTRIBUTING.md).
+      options:
+        - label: Nothing leaves the machine unless the user opens that exit explicitly, and it is logged.
+        - label: No pixels, no raw OCR text, no audio are persisted.

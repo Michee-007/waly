@@ -4,9 +4,39 @@ Thanks for your interest! Waly is young and hardware-coupled; the most
 valuable contributions today are **measurements on other machines**, **bug
 reports with logs**, and **portability work** — before new features.
 
-New here? See [docs/GOOD-FIRST-ISSUES.md](docs/GOOD-FIRST-ISSUES.md) for
-scoped starting points (the `waly-seal` network-seal brick is the most
-self-contained one).
+New here? Pick an issue labelled
+[`good first issue`](https://github.com/Michee-007/waly/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22)
+(the same list, with files to touch, is in
+[docs/GOOD-FIRST-ISSUES.md](docs/GOOD-FIRST-ISSUES.md)). Comment on it before
+you start, so nobody duplicates work. A first reply within two days is the
+goal.
+
+## Your first contribution, without the reference hardware
+
+You do **not** need an NPU, a microphone, a camera or a model server to
+contribute. Most of the logic is plain Rust with unit tests:
+
+```bash
+git clone https://github.com/Michee-007/waly.git && cd waly
+# No system dependency needed for these crates (Linux, macOS or Windows):
+cargo test -p waly-core -p waly-relais -p waly-seal
+```
+
+| Area | Needs | Where |
+|---|---|---|
+| Network seal CLI and service | Windows to run it, any OS to test helpers | `crates/waly-seal` |
+| Sharing relay | nothing | `crates/waly-relais` |
+| Chat loop, tools, router, privacy filters | nothing | `crates/waly-core` |
+| English mode (strings, prompts, speech guards) | nothing to start | `apps/desktop/ui`, `crates/waly-core/src/prompt.rs` |
+| Measurements | your own machine + Ollama | the *Measurement on my machine* issue form |
+
+The desktop app end-to-end tests (`apps/desktop/e2e/`) run offline against
+local servers; they need Windows, Ollama and a 4B model.
+
+**How merges work.** Day-to-day development happens in the maintainer's
+working tree and is published here as regular commits. Your pull request is
+merged here like in any project; the maintainer then carries it into the
+working tree before the next publication, so it is never overwritten.
 
 The codebase, comments and `docs/` are largely in **French** (the project is
 French-first). Contributions, issues and PRs in French or English are equally
@@ -58,6 +88,9 @@ require a running model server, microphone, camera or elevated rights.
 - If your change affects latency, RAM or the privacy invariants, include a
   before/after measurement (the repo culture is measurement-driven —
   see the ADR / PLAN files in `docs/` for the format).
+- If your change opens a way out of the machine, it must go through the
+  gateway (`exterieur::requete`), be something the user turns on, and be
+  written to the seal journal. No exceptions.
 - Document non-obvious decisions in an ADR under `docs/` if they are
   structural.
 

@@ -74,10 +74,17 @@ impl PolitiqueFichiers {
                 EXTENSIONS_ECRITURE.join(", ")
             ));
         }
-        let bas = chemin.to_string_lossy().to_lowercase();
+        // Comparaison sur une forme NORMALISÉE (casse, séparateurs) et par
+        // composant entier. Vécu 2026-10-01 (CI Windows) : comparés en texte
+        // brut, `C:/Windows/x.md` ne « commençait » pas par `C:\Windows` —
+        // un chemin écrit avec des `/` contournait toutes les zones protégées.
+        let cle = |p: &Path| {
+            p.to_string_lossy().to_lowercase().replace('\\', "/").trim_end_matches('/').to_string()
+        };
+        let bas = cle(chemin);
         for zone in &self.interdits_ecriture {
-            let z = zone.to_string_lossy().to_lowercase();
-            if !z.is_empty() && bas.starts_with(&z) {
+            let z = cle(zone);
+            if !z.is_empty() && (bas == z || bas.starts_with(&format!("{z}/"))) {
                 return Err(format!("zone protegee ({}) : ecriture refusee", zone.display()));
             }
         }
@@ -395,6 +402,17 @@ mod tests {
         assert!(p.ecriture_autorisee(Path::new("/racine/sans-extension")).is_err());
         // Zone protégée : refus même en .md.
         assert!(p.ecriture_autorisee(Path::new("/racine/zone-protegee/n.md")).is_err());
+        // Séparateurs et casse mêlés (Windows) : la zone tient quand même.
+        let w = PolitiqueFichiers {
+            racine: PathBuf::from(r"C:\Users\x\Documents\Waly"),
+            interdits_ecriture: vec![PathBuf::from(r"C:\Windows"), PathBuf::from(r"C:\waly\data")],
+        };
+        for chemin in [r"C:\Windows\System32\n.md", "C:/Windows/System32/n.md", "c:/windows/n.md", r"C:\waly/data\n.md"] {
+            assert!(w.ecriture_autorisee(Path::new(chemin)).is_err(), "{chemin}");
+        }
+        // Un dossier voisin au nom plus long n'est PAS la zone.
+        assert!(w.ecriture_autorisee(Path::new(r"C:\WindowsNotes\n.md")).is_ok());
+        assert!(w.ecriture_autorisee(Path::new(r"C:\Users\x\Documents\Waly\n.md")).is_ok());
     }
 
     #[test]

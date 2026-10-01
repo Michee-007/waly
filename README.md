@@ -1,8 +1,12 @@
 # Waly — the intelligence that stays
 
+[![CI](https://github.com/Michee-007/waly/actions/workflows/ci.yml/badge.svg)](https://github.com/Michee-007/waly/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-black.svg)](LICENSE)
+[![Good first issues](https://img.shields.io/github/issues/Michee-007/waly/good%20first%20issue?label=good%20first%20issues&color=black)](https://github.com/Michee-007/waly/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22)
+
 **A 100 % local, privacy-provable personal AI assistant for Windows.**
-Real-time French voice conversation, camera and screen vision, persistent
-memory, wake word — and a kernel-level network seal that makes "nothing
+Real-time voice conversation (French today, built to be adapted to
+English), camera and screen vision, persistent memory, wake word — and a kernel-level network seal that makes "nothing
 leaves your machine" a *verifiable fact*, not a promise.
 
 *Il voit tout. Rien ne sort.* — [Version française](README.fr.md)
@@ -49,8 +53,13 @@ in three ways:
    memory, screen sharing with OCR-first understanding, wake word, persistent
    SQLite memory with local embeddings, supervised tool-calling with
    human-in-the-loop approvals — one installable desktop app.
-3. **French-first.** Voice, prosody, prompts and product are designed for
-   French (English planned), where most of the ecosystem is English-only.
+3. **Not an English-only assistant.** Waly was built in French first —
+   interface, voice and prompts — in an ecosystem that is mostly
+   English-only. It is not meant to stay French-only: the language model is
+   multilingual, and what is French today (interface strings, the voice,
+   the prompts, a few speech guards) is exactly what an **English mode**
+   has to adapt. That mode is not built yet; it is a top roadmap item and a
+   good place to contribute.
 
 ## Architecture
 
@@ -190,6 +199,17 @@ See [ROADMAP.md](ROADMAP.md) — near-term: distilled French TTS, `waly.toml`
 + any OpenAI-compatible backend, local MCP client, English mode.
 
 ## Contributing
+
+**You do not need the reference hardware to help.** Most of the logic is
+plain Rust with unit tests (`cargo test -p waly-core -p waly-relais -p
+waly-seal` runs anywhere). Three good ways in:
+
+- pick a [good first issue](https://github.com/Michee-007/waly/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22)
+  — the network seal brick and the sharing relay are small and
+  self-contained;
+- run Waly on your machine and file your numbers with the *Measurement on
+  my machine* issue form — the most useful contribution right now;
+- help build the **English mode**.
 
 See [CONTRIBUTING.md](CONTRIBUTING.md). The codebase and its documentation
 are largely in French; contributions in French or English are equally

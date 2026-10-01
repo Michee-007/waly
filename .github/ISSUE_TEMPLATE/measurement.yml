@@ -1,0 +1,37 @@
+name: Measurement on my machine
+description: Run Waly (or one of its bricks) on your hardware and share the numbers. The most useful contribution right now.
+title: "[measurement] "
+labels: ["measurement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Waly is developed and measured on a single reference machine. Numbers from other machines tell us what to fix first.
+        French or English, both welcome.
+  - type: textarea
+    id: machine
+    attributes:
+      label: Machine
+      description: CPU, RAM, GPU (integrated or dedicated, VRAM), NPU if any, Windows version. Is Smart App Control on?
+      placeholder: "Ryzen 7 7840U, 32 GB, Radeon 780M, no NPU, Windows 11 24H2, SAC off"
+    validations:
+      required: true
+  - type: textarea
+    id: engine
+    attributes:
+      label: Engine and model
+      description: Ollama / FastFlowLM / llama.cpp / LM Studio, version, model name.
+      placeholder: "Ollama 0.34.2, qwen3:4b-instruct-2507-q4_K_M"
+    validations:
+      required: true
+  - type: textarea
+    id: numbers
+    attributes:
+      label: What you measured
+      description: Time to first word, tokens per second, RAM used, a full voice turn... and how you measured it.
+    validations:
+      required: true
+  - type: textarea
+    id: notes
+    attributes:
+      label: Anything that broke or surprised you

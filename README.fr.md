@@ -1,7 +1,11 @@
 # Waly — l'intelligence qui reste
 
+[![CI](https://github.com/Michee-007/waly/actions/workflows/ci.yml/badge.svg)](https://github.com/Michee-007/waly/actions/workflows/ci.yml)
+[![Licence : MIT](https://img.shields.io/badge/licence-MIT-black.svg)](LICENSE)
+
 **Assistant personnel IA 100 % local pour Windows, à la vie privée prouvable.**
-Voix française temps réel, vision (caméra « mode appel » + écran), mémoire
+Voix temps réel (en français aujourd'hui, pensé pour être adapté à
+l'anglais), vision (caméra « mode appel » + écran), mémoire
 persistante, mot d'éveil — et un scellé réseau au niveau noyau qui fait de
 « rien ne sort de ta machine » un *fait vérifiable*, pas une promesse.
 
@@ -44,8 +48,13 @@ attente de ton accord. L'appel entre deux utilisateurs de Waly arrive ensuite
    barge-in, mode appel caméra avec mémoire visuelle, partage d'écran
    OCR-first, mot d'éveil, mémoire SQLite + embeddings locaux, outils
    supervisés avec approbations humaines — une seule app installable.
-3. **Français d'abord** : voix, prosodie, prompts et produit pensés en
-   français (anglais prévu).
+3. **Pas un assistant réservé à l'anglais — ni au français** : Waly a été
+   construit d'abord en français (interface, voix, prompts), dans un
+   écosystème presque entièrement anglophone. Il n'a pas vocation à rester
+   français seulement : le modèle de langage est multilingue, et ce qui est
+   français aujourd'hui est précisément ce qu'un **mode anglais** doit
+   adapter. Ce mode n'est pas encore construit ; il est en tête de la
+   feuille de route, et c'est un bon endroit où contribuer.
 
 ## Structure
 
@@ -145,6 +154,16 @@ personnelles) qu'il réapplique aux missions semblables. Panneau
 
 Voir [ROADMAP.md](ROADMAP.md) — court terme : TTS français distillé,
 `waly.toml` + tout backend OpenAI-compatible, client MCP local, mode anglais.
+
+## Contribuer
+
+Pas besoin de la machine de référence : l'essentiel de la logique est du
+Rust testé (`cargo test -p waly-core -p waly-relais -p waly-seal` tourne
+partout). Trois bonnes portes d'entrée : une
+[première tâche](https://github.com/Michee-007/waly/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22),
+une mesure sur ta machine (le formulaire d'issue « Measurement on my
+machine »), ou le **mode anglais**. Voir [CONTRIBUTING.md](CONTRIBUTING.md) ;
+issues et PR en français ou en anglais.
 
 ## Licence
 

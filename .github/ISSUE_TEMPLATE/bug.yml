@@ -1,0 +1,30 @@
+name: Bug report
+description: Something does not work as described.
+title: "[bug] "
+labels: ["bug"]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened, and what you expected
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+    validations:
+      required: true
+  - type: textarea
+    id: env
+    attributes:
+      label: Environment
+      description: Windows version, machine (CPU / RAM / GPU), engine and model, how you built or installed Waly.
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: Console output, the seal journal lines if relevant. Remove anything personal first.
+      render: text
