@@ -65,6 +65,10 @@ vide le relais (l'expéditeur renvoie).
 
 ## Limites connues
 
+- Une boîte appartient au PREMIER jeton qui la relève. Quelqu'un qui connaît
+  l'identifiant d'une boîte avant sa première relève (il n'est donné qu'aux
+  contacts) peut donc la réserver : le vrai destinataire reçoit alors un refus
+  et doit changer de boîte. Il ne peut rien lire pour autant.
 - Pas de limitation de débit par adresse : à mettre dans le mandataire si le
   relais est public.
 - Pas de confidentialité persistante : une clé secrète volée plus tard ouvre

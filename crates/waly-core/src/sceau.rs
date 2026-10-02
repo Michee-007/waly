@@ -519,3 +519,23 @@ fn appel(req: &Requete) -> Result<Reponse, String> {
 fn appel(_req: &Requete) -> Result<Reponse, String> {
     Err("service scelleur : Windows uniquement".into())
 }
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn chemin_reel_resolu_stable_et_tolerant() {
+        let f = std::env::temp_dir().join(format!("waly-sceau-test-{}.exe", std::process::id()));
+        std::fs::write(&f, b"x").unwrap();
+        let reel = chemin_reel(&f.to_string_lossy());
+        assert!(std::path::Path::new(&reel).exists());
+        assert!(!reel.starts_with(r"\\?\"), "{reel}");
+        // Résoudre deux fois ne change rien : c'est CE chemin qu'on déclare.
+        assert_eq!(chemin_reel(&reel), reel);
+        let _ = std::fs::remove_file(&f);
+        // Introuvable : rendu tel quel, sans paniquer.
+        assert_eq!(chemin_reel("introuvable/waly-x.exe"), "introuvable/waly-x.exe");
+    }
+}

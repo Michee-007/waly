@@ -120,6 +120,54 @@ pub enum Requete {
     Ping,
 }
 
+/// Nombre maximal d'exécutables dans une requête, et dans le périmètre.
+pub const EXES_MAX: usize = 64;
+
+/// LA politique du pipe, PURE et testée : ce qu'un client a le droit de
+/// demander, selon qu'il est élevé ou non. Appelée par le service AVANT de
+/// toucher au moteur.
+///
+/// Vécu 2026-10-02 (revue) : `Sceller { session: 0, … }` n'était pas gardé.
+/// Or sceller une session REMPLACE ses filtres : un programme sans privilège
+/// pouvait re-sceller le périmètre sur un exécutable bidon « waly-x.exe » et
+/// retirer ainsi les filtres des vrais processus — exactement ce que
+/// `Desceller` refuse. Même trou pour une session tierce (négative) scellée
+/// avec un exe admissible. Règles :
+/// - le périmètre (0) ne se scelle NI ne se lève par le pipe, élevé ou non :
+///   il n'évolue que par le service et par `Rejoindre` (ajout seulement) ;
+/// - une session tierce (négative) ou un exe hors périmètre Waly exigent un
+///   client élevé, pour sceller comme pour lever.
+pub fn autoriser(req: &Requete, eleve: bool) -> Result<(), &'static str> {
+    match req {
+        Requete::Sceller { session, exes } => {
+            if *session == PERIMETRE {
+                return Err("le perimetre ne se scelle pas par le pipe : il s'etend par « rejoindre »");
+            }
+            if exes.is_empty() || exes.len() > EXES_MAX {
+                return Err("liste d'executables vide ou trop longue");
+            }
+            let tiers = *session < PERIMETRE || exes.iter().any(|e| !exe_admissible(e));
+            if tiers && !eleve {
+                return Err("scelle d'un agent tiers refuse : elevation requise (relance en administrateur)");
+            }
+            Ok(())
+        }
+        Requete::Desceller { session } => {
+            if *session == PERIMETRE {
+                return Err("le perimetre ne se leve pas");
+            }
+            if *session < PERIMETRE && !eleve {
+                return Err("levee d'un sceau tiers refusee : elevation requise (relance en administrateur)");
+            }
+            Ok(())
+        }
+        Requete::Rejoindre { exe } => {
+            if exe_admissible(exe) { Ok(()) } else { Err("exe non admissible au perimetre") }
+        }
+        Requete::Journal { .. } | Requete::Etat | Requete::Ping => Ok(()),
+    }
+}
+
 /// Réponse service -> client.
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(tag = "ok")]
@@ -191,6 +239,101 @@ mod tests {
         assert_ne!(a, c, "chemins differents -> sessions differentes");
         assert!(a < 0 && c < 0, "session tiers toujours negative");
         assert_ne!(a, PERIMETRE, "jamais le perimetre");
+    }
+
+    fn sceller(session: i64, exes: &[&str]) -> Requete {
+        Requete::Sceller { session, exes: exes.iter().map(|e| e.to_string()).collect() }
+    }
+
+    #[test]
+    fn le_perimetre_ne_se_remplace_ni_ne_se_leve_par_le_pipe() {
+        // Le trou : re-sceller la session 0 sur un exe bidon retirait les
+        // filtres des vrais processus. Refusé, même pour un client élevé.
+        for eleve in [false, true] {
+            assert!(autoriser(&sceller(PERIMETRE, &[r"C:\x\waly-bidon.exe"]), eleve).is_err());
+            assert!(autoriser(&sceller(PERIMETRE, &[r"C:\waly\bin\waly.exe"]), eleve).is_err());
+            assert!(autoriser(&Requete::Desceller { session: PERIMETRE }, eleve).is_err());
+        }
+        // Le périmètre ne fait que GRANDIR, et seulement d'exes de Waly.
+        assert!(autoriser(&Requete::Rejoindre { exe: r"C:\Users\x\Programs\Waly\waly-desktop.exe".into() }, false).is_ok());
+        assert!(autoriser(&Requete::Rejoindre { exe: r"C:\Windows\System32\curl.exe".into() }, false).is_err());
+        assert!(autoriser(&Requete::Rejoindre { exe: r"C:\Windows\System32\curl.exe".into() }, true).is_err());
+    }
+
+    #[test]
+    fn un_sceau_tiers_ne_se_touche_pas_sans_elevation() {
+        let hermes = r"C:\Program Files\Hermes\hermes.exe";
+        let s = session_pour_exe(hermes);
+        // Sceller ou lever un agent tiers : administrateur seulement.
+        assert!(autoriser(&sceller(s, &[hermes]), false).is_err());
+        assert!(autoriser(&sceller(s, &[hermes]), true).is_ok());
+        assert!(autoriser(&Requete::Desceller { session: s }, false).is_err());
+        assert!(autoriser(&Requete::Desceller { session: s }, true).is_ok());
+        // Le contournement : viser la session du tiers avec un exe « de Waly »
+        // remplacerait son sceau sans élévation. Refusé.
+        assert!(autoriser(&sceller(s, &[r"C:\x\waly-bidon.exe"]), false).is_err());
+        // Un exe tiers glissé parmi des exes de Waly, sur une session Waly.
+        assert!(autoriser(&sceller(7, &[r"C:\waly\bin\waly.exe", hermes]), false).is_err());
+    }
+
+    #[test]
+    fn sessions_waly_user_level_bornes_et_lectures() {
+        assert!(autoriser(&sceller(7, &[r"C:\waly\bin\waly.exe", r"D:\x\flm.exe"]), false).is_ok());
+        assert!(autoriser(&Requete::Desceller { session: 7 }, false).is_ok());
+        assert!(autoriser(&sceller(7, &[]), false).is_err(), "une liste vide leverait le sceau en douce");
+        let trop: Vec<String> = (0..=EXES_MAX).map(|i| format!("waly-{i}.exe")).collect();
+        assert!(autoriser(&Requete::Sceller { session: 7, exes: trop }, true).is_err());
+        for r in [Requete::Ping, Requete::Etat, Requete::Journal { session: 0 }, Requete::Journal { session: -5 }] {
+            assert!(autoriser(&r, false).is_ok());
+        }
+    }
+
+    #[test]
+    fn admissibilite_ruses_de_chemin() {
+        // Seul le NOM du fichier compte : un dossier « waly » ne rend rien admissible.
+        for p in [
+            r"C:\waly\notepad.exe",
+            r"C:\waly-tools\python.exe",
+            "C:/waly/bin/../../Windows/System32/curl.exe",
+            "waly.exe.txt",
+            "waly-voice.exe.bak",
+            r"C:\x\evil.exe:waly.exe", // flux alternatif : le nom reste evil.exe:…
+            "",
+            "waly",
+            ".exe",
+        ] {
+            assert!(!exe_admissible(p), "{p:?} ne doit PAS etre admissible");
+        }
+        // Séparateurs mêlés et casse : admissibles.
+        for p in ["C:/Users/x/AppData/Local/Programs/Waly/WALY-DESKTOP.EXE", r"C:\a/b\flm.exe"] {
+            assert!(exe_admissible(p), "{p:?} devrait etre admissible");
+        }
+    }
+
+    #[test]
+    fn sessions_tierces_jamais_nulles_ni_positives() {
+        for e in ["", "a", r"C:\x\y.exe", "é", &"z".repeat(4000)] {
+            let s = session_pour_exe(e);
+            assert!(s < PERIMETRE, "{e:?} -> {s}");
+        }
+    }
+
+    #[test]
+    fn format_du_fil_fige() {
+        // Le protocole est une ligne JSON : ces formes sont un contrat.
+        let r: Requete = serde_json::from_str(r#"{"cmd":"sceller","session":7,"exes":["waly.exe"]}"#).unwrap();
+        assert!(matches!(r, Requete::Sceller { session: 7, .. }));
+        assert!(matches!(serde_json::from_str::<Requete>(r#"{"cmd":"rejoindre","exe":"waly.exe"}"#).unwrap(), Requete::Rejoindre { .. }));
+        assert!(matches!(serde_json::from_str::<Requete>(r#"{"cmd":"ping"}"#).unwrap(), Requete::Ping));
+        // Jamais de filtre brut : une commande inconnue ou un champ manquant est refusé.
+        for mauvais in [r#"{"cmd":"filtre","regle":"permit any"}"#, r#"{"cmd":"sceller"}"#, r#"{"session":0}"#, "pas du json", ""] {
+            assert!(serde_json::from_str::<Requete>(mauvais).is_err(), "{mauvais}");
+        }
+        assert_eq!(serde_json::to_string(&Reponse::err("x")).unwrap(), r#"{"ok":"false","message":"x"}"#);
+        let ok = serde_json::to_string(&Reponse::Ok(Succes::Fait { fait: true })).unwrap();
+        assert_eq!(ok, r#"{"ok":"true","fait":true}"#);
+        let e: Reponse = serde_json::from_str(r#"{"ok":"true","sessions":[0],"version":"v","privilegie":true}"#).unwrap();
+        assert!(matches!(e, Reponse::Ok(Succes::Etat { privilegie: true, .. })));
     }
 
     #[test]

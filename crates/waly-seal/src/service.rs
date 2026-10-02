@@ -477,6 +477,11 @@ fn traiter(ligne: &[u8], eleve: bool) -> Reponse {
         Ok(r) => r,
         Err(e) => return Reponse::err(format!("requete illisible: {e}")),
     };
+    // La politique d'abord (pure, testée : `ipc::autoriser`) — le moteur
+    // n'est jamais touché par une requête qu'elle refuse.
+    if let Err(raison) = crate::ipc::autoriser(&req, eleve) {
+        return Reponse::err(raison);
+    }
     let m = sealer();
     let mut g = match m.lock() {
         Ok(g) => g,
@@ -490,15 +495,6 @@ fn traiter(ligne: &[u8], eleve: bool) -> Reponse {
             privilegie: g.privilegie(),
         }),
         Requete::Sceller { session, exes } => {
-            // Garde admin (ADR 2026-09-16) : sceller un exe HORS périmètre Waly
-            // (agent tiers) exige un client élevé. Le scellé du périmètre Waly
-            // (tous exes admissibles) reste user-level.
-            let tiers = exes.iter().any(|e| !crate::ipc::exe_admissible(e));
-            if tiers && !eleve {
-                return Reponse::err(
-                    "scelle d'un agent tiers refuse : elevation requise (relance en administrateur)",
-                );
-            }
             let vus = exes.len();
             match g.seal(session, &exes) {
                 Ok(n) => Reponse::Ok(Succes::Scelle { filtres: n, exes_vus: vus }),
@@ -510,14 +506,6 @@ fn traiter(ligne: &[u8], eleve: bool) -> Reponse {
             Err(e) => Reponse::err(e),
         },
         Requete::Desceller { session } => {
-            // Garde admin : lever un sceau TIERS (session négative) exige aussi
-            // un client élevé. Les sessions Waly (positives) restent user-level ;
-            // le périmètre (0) est refusé dans unseal.
-            if session < crate::wfp::PERIMETRE && !eleve {
-                return Reponse::err(
-                    "levee d'un sceau tiers refusee : elevation requise (relance en administrateur)",
-                );
-            }
             g.unseal(session);
             Reponse::Ok(Succes::Fait { fait: true })
         }

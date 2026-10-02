@@ -34,6 +34,7 @@ pub const GARDE: Duration = Duration::from_secs(7 * 24 * 3600);
 /// Une boîte jamais relevée depuis ce délai est fermée.
 pub const ABANDON: Duration = Duration::from_secs(30 * 24 * 3600);
 const ATTENTE_MAX: u64 = 25;
+const ENTETES_MAX: usize = 8192;
 
 struct Boite {
     jeton: String,
@@ -180,10 +181,15 @@ pub fn lire(flux: &mut impl Read) -> Result<Requete, u16> {
     let mut tampon = Vec::new();
     let mut bloc = [0u8; 4096];
     let fin = loop {
+        // La borne porte sur les EN-TÊTES eux-mêmes : un bloc lu peut dépasser
+        // 8 Ko d'un coup et contenir déjà la fin des en-têtes.
         if let Some(i) = tampon.windows(4).position(|w| w == b"\r\n\r\n") {
+            if i > ENTETES_MAX {
+                return Err(431);
+            }
             break i;
         }
-        if tampon.len() > 8192 {
+        if tampon.len() > ENTETES_MAX {
             return Err(431);
         }
         match flux.read(&mut bloc) {
@@ -322,6 +328,114 @@ mod tests {
         let (statut, corps) = r.traiter(&attente);
         assert!(statut == 200 && corps.contains("arrivee") && t0.elapsed() < Duration::from_secs(5));
         assert_eq!(depot.join().unwrap().0, 201);
+    }
+
+    #[test]
+    fn sans_bon_jeton_ni_releve_ni_effacement() {
+        let r = Relais::new();
+        let chemin = format!("/v1/boites/{BOITE}");
+        // Un jeton malformé n'ouvre PAS de boîte (sinon n'importe quoi la réserverait).
+        for mauvais in ["", "court", &"g".repeat(64), &"a".repeat(63), &"a".repeat(65)] {
+            assert_eq!(r.traiter(&req("GET", &chemin, Some(mauvais), "")).0, 401, "{mauvais:?}");
+        }
+        assert_eq!(r.etat(), (0, 0));
+        assert_eq!(r.traiter(&req("POST", &chemin, None, "env")).0, 404);
+        // Le premier jeton valable ouvre la boîte et en devient le seul maître.
+        assert_eq!(r.traiter(&req("GET", &chemin, Some(JETON), "")).0, 200);
+        r.traiter(&req("POST", &chemin, None, "secret-chiffre"));
+        for (jeton, attendu) in [(None, 401), (Some(AUTRE), 403), (Some("court"), 401)] {
+            let (statut, corps) = r.traiter(&req("GET", &chemin, jeton, ""));
+            assert_eq!(statut, attendu);
+            assert!(!corps.contains("secret-chiffre"), "aucune enveloppe ne fuit sur un refus");
+        }
+        for jeton in [None, Some(AUTRE)] {
+            assert_eq!(r.traiter(&req("DELETE", &format!("{chemin}/1"), jeton, "")).0, 403);
+        }
+        assert_eq!(r.etat(), (1, 1), "l'enveloppe est toujours la");
+        // Le dépôt, lui, ne demande pas de jeton : connaître la boîte suffit.
+        assert_eq!(r.traiter(&req("POST", &chemin, Some(AUTRE), "autre")).0, 201);
+    }
+
+    #[test]
+    fn les_reponses_ne_rendent_jamais_le_jeton() {
+        let r = Relais::new();
+        let chemin = format!("/v1/boites/{BOITE}");
+        r.traiter(&req("GET", &chemin, Some(JETON), ""));
+        r.traiter(&req("POST", &chemin, None, "e"));
+        for q in [
+            req("GET", &chemin, Some(JETON), ""),
+            req("GET", &chemin, Some(AUTRE), ""),
+            req("DELETE", &format!("{chemin}/1"), Some(AUTRE), ""),
+            req("POST", &chemin, None, "e"),
+            req("GET", "/v1/sante", None, ""),
+        ] {
+            assert!(!r.traiter(&q).1.contains(JETON));
+        }
+    }
+
+    #[test]
+    fn effacement_identifiants_et_boite_pleine() {
+        let r = Relais::new();
+        let chemin = format!("/v1/boites/{BOITE}");
+        assert_eq!(r.traiter(&req("DELETE", &format!("{chemin}/1"), Some(JETON), "")).0, 404, "boite inconnue");
+        r.traiter(&req("GET", &chemin, Some(JETON), ""));
+        assert_eq!(r.traiter(&req("DELETE", &format!("{chemin}/abc"), Some(JETON), "")).0, 400);
+        assert_eq!(r.traiter(&req("DELETE", &format!("{chemin}/99"), Some(JETON), "")).0, 200, "effacer deux fois ne casse rien");
+        for _ in 0..PAR_BOITE {
+            r.traiter(&req("POST", &chemin, None, "e"));
+        }
+        assert_eq!(r.traiter(&req("POST", &chemin, None, "e")).0, 429);
+        // Une enveloppe relevée et effacée libère une place ; les identifiants
+        // ne sont jamais réutilisés (un effacement tardif ne vise pas une autre).
+        assert_eq!(r.traiter(&req("DELETE", &format!("{chemin}/1"), Some(JETON), "")).0, 200);
+        assert_eq!(r.traiter(&req("POST", &chemin, None, "nouvelle")).0, 201);
+        let v: serde_json::Value = serde_json::from_str(&r.traiter(&req("GET", &chemin, Some(JETON), "")).1).unwrap();
+        let ids: Vec<u64> = v["messages"].as_array().unwrap().iter().map(|m| m["id"].as_u64().unwrap()).collect();
+        assert_eq!(ids.len(), PAR_BOITE);
+        assert!(!ids.contains(&1) && ids.contains(&(PAR_BOITE as u64 + 1)));
+        assert!(ids.windows(2).all(|w| w[0] < w[1]), "ordre d'arrivee conserve");
+    }
+
+    #[test]
+    fn identifiants_de_boite_stricts() {
+        let r = Relais::new();
+        for boite in ["", "abc", &"z".repeat(32), &"a".repeat(31), &"a".repeat(33), "..", "../v1/sante", "a/b"] {
+            let chemin = format!("/v1/boites/{boite}");
+            assert_eq!(r.traiter(&req("GET", &chemin, Some(JETON), "")).0, 404, "{boite:?}");
+            assert_eq!(r.traiter(&req("POST", &chemin, None, "e")).0, 404, "{boite:?}");
+        }
+        for (methode, chemin) in [("PUT", format!("/v1/boites/{BOITE}")), ("GET", "/v2/boites".into()), ("POST", "/v1/sante".into())] {
+            assert_eq!(r.traiter(&req(methode, &chemin, Some(JETON), "e")).0, 404);
+        }
+        assert_eq!(r.etat(), (0, 0), "rien n'a ete cree");
+    }
+
+    #[test]
+    fn comparaison_des_jetons() {
+        assert!(egal(JETON, JETON));
+        assert!(!egal(JETON, AUTRE));
+        assert!(!egal(JETON, &JETON[..63]));
+        assert!(!egal("", JETON));
+        assert!(egal("", ""));
+    }
+
+    #[test]
+    fn requetes_http_malformees_refusees() {
+        // En-têtes démesurés, longueur annoncée fausse ou énorme, corps non textuel.
+        let enorme = format!("GET /v1/sante HTTP/1.1\r\nX-Bourrage: {}\r\n\r\n", "a".repeat(9000));
+        assert_eq!(lire(&mut enorme.as_bytes()).err(), Some(431));
+        assert_eq!(lire(&mut "POST /x HTTP/1.1\r\nContent-Length: beaucoup\r\n\r\n".as_bytes()).err(), Some(400));
+        assert_eq!(lire(&mut "POST /x HTTP/1.1\r\nContent-Length: 10\r\n\r\ncourt".as_bytes()).err(), Some(400), "corps plus court qu'annonce");
+        assert_eq!(lire(&mut "GET /x HTTP/1.1\r\n".as_bytes()).err(), Some(400), "en-tetes jamais termines");
+        let mut binaire = b"POST /x HTTP/1.1\r\nContent-Length: 2\r\n\r\n".to_vec();
+        binaire.extend([0xff, 0xfe]);
+        assert_eq!(lire(&mut binaire.as_slice()).err(), Some(400));
+        // Noms d'en-têtes insensibles à la casse, chaîne de requête ignorée.
+        let r = lire(&mut format!("GET /v1/sante?x=1 HTTP/1.1\r\nauthorization: Bearer {JETON}\r\nx-attente: 3\r\n\r\n").as_bytes()).unwrap();
+        assert_eq!((r.chemin.as_str(), r.attente, r.jeton.as_deref()), ("/v1/sante", 3, Some(JETON)));
+        // Un autre schéma d'autorisation n'est pas un jeton.
+        let r = lire(&mut format!("GET /x HTTP/1.1\r\nAuthorization: Basic {JETON}\r\n\r\n").as_bytes()).unwrap();
+        assert_eq!(r.jeton, None);
     }
 
     #[test]

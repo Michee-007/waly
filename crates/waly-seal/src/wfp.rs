@@ -294,6 +294,11 @@ impl Sealer {
         if self.perimetre_exes.iter().any(|e| e.eq_ignore_ascii_case(exe)) {
             return Ok(self.filtres.get(&PERIMETRE).map(|v| v.len()).unwrap_or(0));
         }
+        // Borne : le périmètre ne grossit pas sans fin sous les appels d'un
+        // programme sans privilège.
+        if self.perimetre_exes.len() >= crate::ipc::EXES_MAX {
+            return Err("perimetre plein".into());
+        }
         self.perimetre_exes.push(exe.to_string());
         let liste = self.perimetre_exes.clone();
         self.seal(PERIMETRE, &liste)
@@ -465,5 +470,46 @@ fn chemin_reel(exe: &str) -> String {
             }
         }
         Err(_) => exe.to_string(),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn app_id_decode_en_chemin_lisible() {
+        let nt = r"\device\harddiskvolume3\program files\waly\waly-desktop.exe";
+        let mut octets: Vec<u8> = nt.encode_utf16().flat_map(|c| c.to_le_bytes()).collect();
+        octets.extend([0, 0, b'x', 0]); // NUL final puis du bruit : ignore
+        assert_eq!(exe_de_appid(&octets), nt);
+        assert_eq!(exe_de_appid(&[]), "");
+        assert_eq!(exe_de_appid(&[0x41]), "");
+    }
+
+    #[test]
+    fn chemin_reel_resout_et_reste_stable() {
+        // Le dossier temporaire est souvent donne en nom court (`NOM~1`) : le
+        // chemin declare au noyau doit etre le chemin resolu, sans prefixe
+        // etendu, et le resoudre une seconde fois ne doit rien changer.
+        let f = std::env::temp_dir().join(format!("waly-seal-test-{}.exe", std::process::id()));
+        std::fs::write(&f, b"x").unwrap();
+        let reel = chemin_reel(&f.to_string_lossy());
+        assert!(!reel.starts_with(r"\\?\"), "{reel}");
+        assert!(std::path::Path::new(&reel).exists());
+        assert_eq!(chemin_reel(&reel), reel);
+        // Casse et separateurs differents : meme fichier, meme chemin declare.
+        let variante = f.to_string_lossy().replace('\\', "/").to_uppercase();
+        assert_eq!(chemin_reel(&variante).to_lowercase(), reel.to_lowercase());
+        let _ = std::fs::remove_file(&f);
+        // Introuvable : rendu tel quel (le scelle sautera ce fichier).
+        assert_eq!(chemin_reel(r"C:\introuvable\waly-x.exe"), r"C:\introuvable\waly-x.exe");
+    }
+
+    #[test]
+    fn codes_d_erreur_lisibles() {
+        assert_eq!(code(0), "OK");
+        assert!(code(5).contains("ACCESS_DENIED"));
+        assert!(code(0x8032_0035).contains("NOT_FOUND"));
     }
 }
