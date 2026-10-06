@@ -6,6 +6,8 @@
 //!   waly-seal-svc start      démarre le service
 //!   waly-seal-svc run        lancé par le SCM (ne pas appeler à la main)
 //!   waly-seal-svc console    sert le pipe en avant-plan (debug)
+//!   waly-seal-svc enclos creer <fichier> | supprimer | etat
+//!                            le compte Windows à part (élévation)
 //!   waly-seal-svc probe <json>  envoie une requête au pipe et imprime la
 //!                               réponse (diagnostic terrain, ex.
 //!                               probe '{"cmd":"ping"}')
@@ -13,7 +15,7 @@
 /// Sel de reroll SAC (piège 3) : un nouveau build peut se faire bloquer par
 /// Smart App Control (verdict par binaire, imprévisible). Incrémenter change le
 /// hash → nouveau verdict. (Le service final sera signé.)
-const SAC_REROLL: u32 = 1;
+const SAC_REROLL: u32 = 10;
 
 #[cfg(not(windows))]
 fn main() {
@@ -67,6 +69,47 @@ fn main() {
             },
             None => Err("usage: waly-seal-svc unseal <chemin-exe>".into()),
         },
+        // --- La Garde, etape 3 : regler ce que le service observe. Allumer
+        // exige une console ELEVEE ; « rien » eteint.
+        "regarder" => {
+            let mode = std::env::args().nth(2).unwrap_or_default();
+            let exes: Vec<String> = std::env::args().skip(3).collect();
+            match cmd_regarder(&mode, &exes) {
+                Ok(()) => return,
+                Err(e) => Err(e),
+            }
+        }
+        // Essai sans service : ecoute dans CE processus (console elevee)
+        // pendant N secondes et imprime ce qui a ete vu.
+        "essai-regard" => {
+            let secondes: u64 = std::env::args().nth(2).and_then(|s| s.parse().ok()).unwrap_or(6);
+            let exes: Vec<String> = std::env::args().skip(3).collect();
+            match cmd_essai_regard(secondes, &exes) {
+                Ok(()) => return,
+                Err(e) => Err(e),
+            }
+        }
+        // --- La Garde, etape 4 : le compte Windows a part (l'enclos).
+        // Console ELEVEE. Le mot de passe arrive par un fichier, jamais en
+        // argument.
+        "enclos" => {
+            let (quoi, fichier) = (std::env::args().nth(2).unwrap_or_default(), std::env::args().nth(3));
+            match (quoi.as_str(), fichier) {
+                ("creer", Some(f)) => match waly_seal::enclos::creer(&f) {
+                    Ok(fait) => {
+                        println!("enclos : compte {fait}");
+                        return;
+                    }
+                    Err(e) => Err(e),
+                },
+                ("supprimer", _) => waly_seal::enclos::supprimer(),
+                ("etat", _) => {
+                    println!("{}", waly_seal::enclos::etat());
+                    return;
+                }
+                _ => Err("usage: waly-seal-svc enclos creer <fichier-du-mot-de-passe> | supprimer | etat".into()),
+            }
+        }
         "list" => match cmd_list() {
             Ok(()) => return,
             Err(e) => Err(e),
@@ -80,7 +123,8 @@ fn main() {
         },
         other => {
             eprintln!(
-                "commande inconnue: {other:?}\n  service : setup|install|uninstall|start|run|console\n  sceau   : seal <exe...>|unseal <exe>|list|journal <exe>|probe <json>"
+                "commande inconnue: {other:?}\n  service : setup|install|uninstall|start|run|console\n  sceau   : seal <exe...>|unseal <exe>|list|journal <exe>|probe <json>\n  regard  : regarder <rien|tout|agents> [exe...]|essai-regard [secondes] [exe...]
+  enclos  : enclos creer <fichier>|supprimer|etat"
             );
             std::process::exit(2);
         }
@@ -120,6 +164,35 @@ fn probe(json: &str) -> Result<String, String> {
 }
 
 // --- Sous-commandes de la brique (chantier C) ------------------------------
+
+#[cfg(windows)]
+fn cmd_regarder(mode: &str, exes: &[String]) -> Result<(), String> {
+    use waly_seal::ipc::{Reponse, Requete, Succes};
+    match envoyer(&Requete::Regarder { mode: mode.to_string(), exes: exes.to_vec() })? {
+        Reponse::Ok(Succes::Regard { mode, exes, .. }) => {
+            println!("surveillance : {mode}{}", if exes.is_empty() { String::new() } else { format!(" ({})", exes.join(", ")) });
+            Ok(())
+        }
+        Reponse::Ok(_) => Err("reponse inattendue".into()),
+        Reponse::Err { message } => Err(message),
+    }
+}
+
+#[cfg(windows)]
+fn cmd_essai_regard(secondes: u64, exes: &[String]) -> Result<(), String> {
+    use waly_seal::ipc::{REGARD_AGENTS, REGARD_RIEN, REGARD_TOUT};
+    let mode = if exes.is_empty() { REGARD_TOUT } else { REGARD_AGENTS };
+    waly_seal::regard::regler(mode, exes)?;
+    println!("ecoute ({mode}) pendant {secondes} s…");
+    std::thread::sleep(std::time::Duration::from_secs(secondes));
+    let (_, _, obs, dernier) = waly_seal::regard::lire(0);
+    waly_seal::regard::regler(REGARD_RIEN, &[])?;
+    println!("{} observations gardees (numero {dernier})", obs.len());
+    for o in &obs {
+        println!("{}\t{}\t{}\tx{}\t{}", o.genre, o.pid, o.exe.rsplit('\\').next().unwrap_or(&o.exe), o.fois, o.objet);
+    }
+    Ok(())
+}
 
 /// Envoie une requête typée au service et renvoie la réponse typée.
 #[cfg(windows)]

@@ -1,21 +1,32 @@
-# Waly — the intelligence that stays
+# Waly — a personal intelligence system, under your watch
 
 [![CI](https://github.com/Michee-007/waly/actions/workflows/ci.yml/badge.svg)](https://github.com/Michee-007/waly/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-black.svg)](LICENSE)
 [![Good first issues](https://img.shields.io/github/issues/Michee-007/waly/good%20first%20issue?label=good%20first%20issues&color=black)](https://github.com/Michee-007/waly/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22)
 
-**A 100 % local, privacy-provable personal AI assistant for Windows.**
-Real-time voice conversation (French today, built to be adapted to
-English), camera and screen vision, persistent memory, wake word — and a kernel-level network seal that makes "nothing
-leaves your machine" a *verifiable fact*, not a promise.
+**A personal intelligence system for Windows: an assistant that hears you,
+sees you, remembers and acts, and the guard post for every AI agent on your
+machine.** You see what each one touches (files, memory, screen,
+camera, microphone, internet) and you cut it off. Waly is local and sealed
+by default: real-time voice (French today, built to be adapted to English),
+camera and screen vision, persistent memory, wake word, and a kernel-level
+network seal that it proves with a real attempt before it displays it.
 
-*Il voit tout. Rien ne sort.* — [Version française](README.fr.md)
+*See what AI touches. Cut it off whenever you want.* — [Version française](README.fr.md)
 
-![The privacy panel: the network seal is held, a real outbound attempt is blocked by Windows and logged, and the only exit — a model download the user asked for — is listed](docs/images/vie-privee.png)
+![The Guard: a graph links Waly and the other agents on the machine to what they touch; one Claude Code runs in the enclosure, its folders listed with the result of their test](docs/images/garde.png)
 
-*"Nothing leaves" you can check: the built-in test makes a real outbound
-connection from Waly's own process — the kernel blocks it and the journal
-records it, next to the exits you opened yourself.*
+*The Guard ("la Garde"), a real capture (empty database, the real agents of
+the reference machine: three Claude and one Ollama). Each of Waly's links is
+cut with one click. The selected Claude Code runs in the enclosure: a
+separate Windows account that Windows keeps out of your folders until you
+hand one over. Every setting is followed by a real attempt, and it is the
+result of that attempt that is displayed.*
+
+![On first launch Waly makes a real outbound attempt in front of you: "Windows blocked it."](docs/images/preuve.png)
+
+*First launch: Waly makes a real attempt to reach the internet in front of
+you, and shows what Windows did with it.*
 
 | Deep reflection, shown before the answer | Models judged for *your* machine |
 |---|---|
@@ -23,7 +34,7 @@ records it, next to the exits you opened yourself.*
 
 | A voice call, on your machine | A video call: Waly sees you, the camera stays local |
 |---|---|
-| ![The call screen: the eclipse listens, captions below, "Local - nothing leaves"](docs/images/appel-voix.png) | ![Video call: Waly notices presence and attention; the camera image never leaves the machine](docs/images/appel-video.png) |
+| ![The call screen: the eclipse listens, captions below, the "Local" mark while a model on the machine is answering](docs/images/appel-voix.png) | ![Video call: Waly notices presence and attention; the camera image never leaves the machine](docs/images/appel-video.png) |
 
 ![The sharing panel: a conversation received from a contact waits for approval; your Waly code is your public key](docs/images/partage.png)
 
@@ -40,20 +51,49 @@ approval. Calls between two Waly users come next (see below).*
 
 The 2026 local-AI landscape is full of great *building blocks* (Ollama,
 LM Studio, Whisper, Piper…) and modular smart-home stacks. Waly is different
-in three ways:
+in four ways.
 
-1. **Provable privacy (« huis clos »).** A Windows Filtering Platform seal —
+**Why a *system*, not one more assistant.** An assistant answers. A personal
+intelligence system holds together what perceives, remembers and acts around
+one person: voice, sight, memory, tools, and the other agents running on the
+same machine. Its author's definition: *you must be able to see what the AI
+touches.* Without that it is not a system, it is a box.
+
+The idea behind all of it: such a system connects a
+whole digital life and acts for one person, so what you can entrust to it
+depends less on how smart it is than on what you can **check without
+spending your life checking**
+([the thesis, and where others do it better](docs/RESEARCH-2026-10-06-these-et-etat-de-l-art.md)).
+
+1. **The Guard: see what AI touches, and cut it off.** One always-visible
+   button opens one page: what Waly touched today (the file, the action,
+   never the content), a graph whose every link can be cut or restored with
+   a click, and the event feed. The other agents on the machine (Ollama,
+   Claude, Codex, OpenClaw, Hermes…) are on it too: you can cut their
+   internet access, freeze them, watch what they open, and move them into
+   **the enclosure**, a separate Windows account that Windows keeps out of
+   your folders. What holds and what does not is written below and in the
+   decision records
+   ([watching](docs/ADR-2026-10-06-garde-voir-ce-que-les-agents-touchent.md),
+   [the enclosure](docs/ADR-2026-10-06-garde-l-enclos.md)).
+2. **Provable privacy (« huis clos »).** A Windows Filtering Platform seal —
    installed as a SYSTEM service — blocks all outbound network traffic from
    Waly's processes at the kernel level, keeps loopback (model server) alive,
    and writes every blocked attempt to an auditable local journal. You can
-   *test* the seal from inside the app. No other assistant we know of does
-   this.
-2. **An integrated assistant, not a chatbot.** Streaming voice cascade
+   *test* the seal from inside the app, and Waly runs that test on its own
+   before it displays "sealed". Confining an agent's network is not
+   new — Anthropic, OpenAI and NVIDIA shipped sandboxes for coding and
+   personal agents in 2026, some of them better designed than ours on
+   specific points. What we have not found elsewhere is the combination: a
+   voice-and-vision assistant for one person, sealed by default, with the
+   proof in the user's hands. See the
+   [honest comparison](docs/RESEARCH-2026-10-06-these-et-etat-de-l-art.md).
+3. **An integrated assistant, not a chatbot.** Streaming voice cascade
    (VAD → STT → LLM → TTS) with barge-in, camera "call mode" with visual
    memory, screen sharing with OCR-first understanding, wake word, persistent
    SQLite memory with local embeddings, supervised tool-calling with
    human-in-the-loop approvals — one installable desktop app.
-3. **Not an English-only assistant.** Waly was built in French first —
+4. **Not an English-only assistant.** Waly was built in French first —
    interface, voice and prompts — in an ecosystem that is mostly
    English-only. It is not meant to stay French-only: the language model is
    multilingual, and what is French today (interface strings, the voice,
@@ -77,9 +117,10 @@ in three ways:
 - `crates/waly-relais/` — the tiny self-hostable relay that lets two Waly
   installs exchange an end-to-end encrypted conversation (it only stores
   sealed envelopes — see its [README](crates/waly-relais/README.md))
-- `crates/waly-seal/` — the network seal: per-session WFP filters, Windows
-  service, audit journal, fail-closed by design. **Usable as a standalone
-  brick to seal any local agent** — see its
+- `crates/waly-seal/` — the Guard's service: the network seal (per-session
+  WFP filters, audit journal, fail-closed by design), the watch over what
+  programs touch, and the creation of the enclosure account. **The seal is
+  usable as a standalone brick for any local agent** — see its
   [README](crates/waly-seal/README.md)
 - `engines/` — install/launch scripts for the inference engines
   (FastFlowLM on NPU, Ollama Vulkan fallback). Binaries and models live
@@ -94,6 +135,39 @@ the AMD NPU (primary; free binary kernels, MIT CLI) or Ollama on Vulkan
 multimodal model for text and vision, within a signed ~6.5 GB RAM budget.
 
 ## Privacy guarantees (and honest non-guarantees)
+
+**See it without digging.** The "Garde" button at the top is always visible,
+and turns ochre when an exit is open or the seal does not hold. Its page
+shows the last real attempt, lets you run another one, and lists the exits
+you opened. On first launch Waly runs that attempt in front of you, once.
+
+**Other agents on this machine.** Waly lists the known agents that are
+running (Ollama, OpenClaw, Hermes, Claude, Codex…). For each one you can:
+
+- **cut its internet access** (Windows asks for consent), then see what it
+  tried. The seal works per program, so an agent running on a shared engine
+  (Python, Node) takes every program on that engine down with it — Waly says
+  so, with the count, before sealing;
+- **freeze it**: its processes are suspended until you resume them. No
+  elevation; if Waly closes, they resume;
+- **watch what it touches**: files opened or written, programs launched,
+  addresses contacted — paths, never content. Off by default, turning it on
+  needs Windows consent, and the feed is filtered: it shows what looks like
+  your files, not an exhaustive trace;
+- **move it into the enclosure**: it is closed and relaunched under a
+  separate Windows account. Windows itself then refuses your personal folder
+  until you hand a folder over (read-only, or read-write), and every setting
+  is checked by a real attempt made under that account. Limits: outside your
+  personal folder (another drive, `C:\projects`) an enclosed agent reads and
+  writes until you cut the folder; the enclosure is shared by the agents you
+  put in it; it does not touch the network; an agent you relaunch by hand
+  leaves it, and the Guard says so.
+
+We replayed our own promises before publishing: **six defects found and
+fixed, six problems still open** — each open problem with the design we
+intend to follow and where help is welcome. Read
+[`docs/AUDIT-2026-10-02-promesses-rejouees.md`](docs/AUDIT-2026-10-02-promesses-rejouees.md)
+before you trust anything below.
 
 - No pixels and no raw OCR text are ever persisted — only one-line VLM
   descriptions in the local visual journal. Verified against the database.
@@ -110,6 +184,12 @@ multimodal model for text and vision, within a signed ~6.5 GB RAM budget.
   system `curl`) to the single address you declared. Known gap: that
   gateway is not yet itself sealed per destination
   (`docs/ADR-2026-10-01-lot3-sorties-ouvertes.md`).
+- **The seal is per program, not per process tree, and an Ollama engine is
+  outside it.** A different program launched by a Waly process is not
+  covered (the model has no tool to launch one; the gap concerns hostile
+  code running inside Waly). Ollama is a shared third-party program that
+  downloads its own models, so it keeps its network access unless you seal
+  it yourself with the brick.
 - **An outside model only ever receives the text of the conversation on
   screen** — never your memory, instructions, screen, images or tools; an
   attached file only if you allow it for that one message. This is enforced

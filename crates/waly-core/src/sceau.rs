@@ -163,6 +163,85 @@ pub fn etat() -> Result<(Vec<i64>, String, bool), String> {
 /// (rare) — jamais par tour (discipline append-only du cache FLM).
 pub fn actif() -> bool {
     matches!(etat(), Ok((sessions, _, privilegie)) if privilegie && sessions.contains(&PERIMETRE))
+        && sonder() != Sonde::Ouverte
+}
+
+/// Ce que dit un essai de sortie depuis CE processus (voir [`sonder`]).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize)]
+#[serde(rename_all = "lowercase")]
+pub enum Sonde {
+    /// Le noyau a refusé la connexion (`WSAEACCES`) : ce processus est scellé.
+    Bloquee,
+    /// La connexion est partie (ou a abouti) : ce processus N'EST PAS scellé,
+    /// quoi qu'en dise le service.
+    Ouverte,
+    /// Ni l'un ni l'autre (pas de réseau, autre système) : on ne conclut pas.
+    Indeterminee,
+}
+
+/// Adresse de l'essai : TEST-NET-1 (RFC 5737), réservée à la documentation et
+/// routée nulle part. Aucun hôte réel n'est contacté, sceau tenu ou non.
+const CIBLE_SONDE: &str = "192.0.2.1:443";
+const WSAEACCES: i32 = 10013;
+
+/// Lecture PURE du résultat d'une tentative de connexion. Mesuré le
+/// 2026-10-06 sur la machine de référence : sous sceau, refus en 0 ms
+/// (10013) ; hors sceau, rien ne répond et l'essai expire.
+pub fn lire_sonde(resultat: Result<(), (Option<i32>, std::io::ErrorKind)>) -> Sonde {
+    match resultat {
+        Ok(()) => Sonde::Ouverte,
+        Err((Some(WSAEACCES), _)) => Sonde::Bloquee,
+        Err((_, std::io::ErrorKind::TimedOut)) => Sonde::Ouverte,
+        Err(_) => Sonde::Indeterminee,
+    }
+}
+
+/// Le sceau tient-il POUR CE PROCESSUS ? Un essai réel, silencieux, sans hôte
+/// réel au bout. L'état du service ne suffit pas : il a déjà répondu « scellé »
+/// alors qu'aucun filtre ne visait le bon programme (chemin court le
+/// 2026-10-01, fichier invisible pour le service le 2026-10-06). Résultat
+/// gardé une minute : l'interface peut le demander souvent.
+pub fn sonder() -> Sonde {
+    if let Ok(g) = CACHE_SONDE.lock() {
+        if let Some((quand, s)) = *g {
+            if quand.elapsed() < std::time::Duration::from_secs(60) {
+                return s;
+            }
+        }
+    }
+    sonder_maintenant()
+}
+
+static CACHE_SONDE: std::sync::Mutex<Option<(std::time::Instant, Sonde)>> = std::sync::Mutex::new(None);
+
+/// L'essai lui-même, tout de suite (après avoir rejoint le périmètre, par
+/// ex.) ; son résultat remplace celui gardé par [`sonder`].
+pub fn sonder_maintenant() -> Sonde {
+    let s = essai_de_sortie();
+    if let Ok(mut g) = CACHE_SONDE.lock() {
+        *g = Some((std::time::Instant::now(), s));
+    }
+    s
+}
+
+#[cfg(windows)]
+fn essai_de_sortie() -> Sonde {
+    use std::net::TcpStream;
+    use std::time::Duration;
+    let Ok(addr) = CIBLE_SONDE.parse::<std::net::SocketAddr>() else {
+        return Sonde::Indeterminee;
+    };
+    lire_sonde(
+        TcpStream::connect_timeout(&addr, Duration::from_millis(700))
+            .map(|_| ())
+            .map_err(|e| (e.raw_os_error(), e.kind())),
+    )
+}
+
+/// Hors Windows il n'y a pas de sceau à sonder : on ne conclut pas.
+#[cfg(not(windows))]
+fn essai_de_sortie() -> Sonde {
+    Sonde::Indeterminee
 }
 
 /// Auto-test du sceau : tente une VRAIE sortie réseau depuis CE processus
@@ -249,6 +328,48 @@ pub fn agents(c: &Connection) -> rusqlite::Result<Vec<AgentScelle>> {
     rows.collect()
 }
 
+// --- Le regard (Garde, étape 3) : ce que le service observe ----------------
+
+pub use waly_seal::ipc::Observation;
+
+/// (mode, programmes désignés, observations plus récentes que `apres`, dernier numéro).
+pub fn regard_lire(apres: u64) -> Result<(String, Vec<String>, Vec<Observation>, u64), String> {
+    match appel(&Requete::Observations { apres })? {
+        Reponse::Ok(Succes::Regard { mode, exes, observations, dernier }) => Ok((mode, exes, observations, dernier)),
+        Reponse::Ok(_) => Err("réponse inattendue du service (service trop ancien ? réinstalle Waly)".into()),
+        Reponse::Err { message } => Err(message),
+    }
+}
+
+/// Règle la surveillance. Éteindre (« rien ») se fait directement ; allumer
+/// passe par le service en élévation (Windows demande l'accord).
+pub fn regard_regler(mode: &str, exes: &[String]) -> Result<(), String> {
+    if mode == waly_seal::ipc::REGARD_RIEN {
+        return match appel(&Requete::Regarder { mode: mode.into(), exes: Vec::new() })? {
+            Reponse::Ok(_) => Ok(()),
+            Reponse::Err { message } => Err(message),
+        };
+    }
+    let mut p = format!("regarder {mode}");
+    for e in exes {
+        p.push_str(&format!(" \"{e}\""));
+    }
+    match regard_eleve(&p)? {
+        0 => Ok(()),
+        c => Err(format!("la surveillance n'a pas démarré (code {c}) — accord Windows refusé ?")),
+    }
+}
+
+#[cfg(windows)]
+fn regard_eleve(parametres: &str) -> Result<i32, String> {
+    lancer_eleve_brut(parametres)
+}
+
+#[cfg(not(windows))]
+fn regard_eleve(_parametres: &str) -> Result<i32, String> {
+    Err("surveillance : Windows uniquement".into())
+}
+
 // --- Élévation : sceller/lever un agent tiers via le CLI du service (Windows)
 
 /// Chemin de l'exe du service scelleur (qui est AUSSI le CLI `seal`/`unseal`).
@@ -293,19 +414,31 @@ pub fn desceller_agent(exe: &str) -> Result<(), String> {
 /// attend, renvoie le code de sortie. UAC refusé → `ERROR_CANCELLED` (1223).
 #[cfg(windows)]
 fn lancer_eleve(verbe: &str, exe: &str) -> Result<i32, String> {
+    // Paramètres : `seal "<exe>"` (guillemets pour les chemins avec espaces).
+    lancer_eleve_brut(&format!("{verbe} \"{exe}\""))
+}
+
+/// Lance `<service> <parametres>` en élévation (UAC), attend, rend le code.
+#[cfg(windows)]
+pub(crate) fn lancer_eleve_brut(parametres: &str) -> Result<i32, String> {
+    let svc = chemin_service().ok_or("service scelleur introuvable")?;
+    lancer_eleve_sur(&svc, parametres)
+}
+
+/// Lance `<programme> <parametres>` en élévation (UAC), attend, rend le code.
+#[cfg(windows)]
+pub(crate) fn lancer_eleve_sur(svc: &str, parametres: &str) -> Result<i32, String> {
     use std::os::windows::ffi::OsStrExt;
     use windows_sys::Win32::Foundation::{CloseHandle, GetLastError, ERROR_CANCELLED};
     use windows_sys::Win32::System::Threading::{GetExitCodeProcess, WaitForSingleObject, INFINITE};
     use windows_sys::Win32::UI::Shell::{ShellExecuteExW, SEE_MASK_NOCLOSEPROCESS, SHELLEXECUTEINFOW};
 
-    let svc = chemin_service().ok_or("service scelleur introuvable")?;
     let w = |s: &str| -> Vec<u16> {
         std::ffi::OsStr::new(s).encode_wide().chain(std::iter::once(0)).collect()
     };
     let verb_w = w("runas");
-    let file_w = w(&svc);
-    // Paramètres : `seal "<exe>"` (guillemets pour les chemins avec espaces).
-    let params_w = w(&format!("{verbe} \"{exe}\""));
+    let file_w = w(svc);
+    let params_w = w(parametres);
 
     unsafe {
         let mut sei: SHELLEXECUTEINFOW = std::mem::zeroed();
@@ -378,6 +511,10 @@ pub fn choisir_fichier(titre: &str, filtre: &str) -> Option<String> {
 }
 
 #[cfg(not(windows))]
+pub(crate) fn lancer_eleve_sur(_svc: &str, _parametres: &str) -> Result<i32, String> {
+    Err("Windows uniquement".into())
+}
+#[cfg(not(windows))]
 pub fn chemin_service() -> Option<String> {
     None
 }
@@ -427,7 +564,7 @@ pub fn noter(c: &Connection, genre: &str, detail: &str) -> rusqlite::Result<()> 
 fn journaliser_sortie(c: &Connection, session: i64, d: &Sortie) -> rusqlite::Result<()> {
     // Déduplique sur (session, exe, adresse, port, t) : le service renvoie le
     // ring buffer complet à chaque drain.
-    let detail = format!("{} -> {}:{} (proto {})", exe_court(&d.exe), d.adresse, d.port, d.proto);
+    let detail = detail_sortie(d);
     c.execute(
         "INSERT INTO audit_sceau (session_id, genre, detail, cle)
          VALUES (?1, 'bloque', ?2, ?3)
@@ -456,6 +593,21 @@ pub fn lignes_audit(c: &Connection, session: i64, limite: i64) -> rusqlite::Resu
         })
     })?;
     rows.collect()
+}
+
+/// Ce que le journal dit d'une sortie bloquée. L'essai que Waly fait de
+/// lui-même (vers l'adresse de documentation) est nommé comme tel : sinon
+/// l'utilisateur lirait une tentative vers une adresse inconnue.
+fn detail_sortie(d: &Sortie) -> String {
+    if CIBLE_SONDE.starts_with(&format!("{}:", d.adresse)) {
+        return format!("essai de {} : bloqué (aucun hôte contacté)", exe_court(&d.exe));
+    }
+    format!("{} -> {}:{} (proto {})", exe_court(&d.exe), d.adresse, d.port, d.proto)
+}
+
+/// Depuis combien de secondes le dernier essai de [`sonder`] a-t-il eu lieu ?
+pub fn age_sonde() -> Option<u64> {
+    CACHE_SONDE.lock().ok().and_then(|g| g.map(|(quand, _)| quand.elapsed().as_secs()))
 }
 
 fn exe_court(chemin: &str) -> String {
@@ -537,5 +689,45 @@ mod tests {
         let _ = std::fs::remove_file(&f);
         // Introuvable : rendu tel quel, sans paniquer.
         assert_eq!(chemin_reel("introuvable/waly-x.exe"), "introuvable/waly-x.exe");
+    }
+
+    #[test]
+    fn la_sonde_ne_dit_scelle_que_sur_un_refus_du_noyau() {
+        use std::io::ErrorKind;
+        // Refus du noyau (WSAEACCES) : scellé, quel que soit le genre d'erreur.
+        assert_eq!(lire_sonde(Err((Some(10013), ErrorKind::PermissionDenied))), Sonde::Bloquee);
+        assert_eq!(lire_sonde(Err((Some(10013), ErrorKind::Other))), Sonde::Bloquee);
+        // La connexion aboutit ou part sans réponse : PAS scellé.
+        assert_eq!(lire_sonde(Ok(())), Sonde::Ouverte);
+        assert_eq!(lire_sonde(Err((Some(10060), ErrorKind::TimedOut))), Sonde::Ouverte);
+        assert_eq!(lire_sonde(Err((None, ErrorKind::TimedOut))), Sonde::Ouverte);
+        // Pas de réseau, hôte injoignable, refus distant : on ne conclut pas
+        // (surtout pas « scellé »).
+        assert_eq!(lire_sonde(Err((Some(10051), ErrorKind::Other))), Sonde::Indeterminee);
+        assert_eq!(lire_sonde(Err((Some(10065), ErrorKind::Other))), Sonde::Indeterminee);
+        assert_eq!(lire_sonde(Err((Some(10061), ErrorKind::ConnectionRefused))), Sonde::Indeterminee);
+        // Le nom envoyé à l'interface.
+        assert_eq!(serde_json::to_string(&Sonde::Bloquee).unwrap(), "\"bloquee\"");
+        assert_eq!(serde_json::to_string(&Sonde::Ouverte).unwrap(), "\"ouverte\"");
+    }
+
+    #[test]
+    fn le_journal_nomme_l_essai_de_waly() {
+        let essai = Sortie { t: 1, exe: r"\device\harddiskvolume3\x\waly.exe".into(), proto: 6, adresse: "192.0.2.1".into(), port: 443 };
+        let d = detail_sortie(&essai);
+        assert!(d.starts_with("essai de waly.exe"), "{d}");
+        assert!(!d.contains("192.0.2.1"), "{d}");
+        let vraie = Sortie { t: 1, exe: r"\device\x\waly.exe".into(), proto: 6, adresse: "1.1.1.1".into(), port: 443 };
+        assert_eq!(detail_sortie(&vraie), "waly.exe -> 1.1.1.1:443 (proto 6)");
+    }
+
+    #[test]
+    fn la_sonde_vise_une_adresse_de_documentation() {
+        // TEST-NET-1 (RFC 5737) : aucun hôte réel ne peut être contacté.
+        let a: std::net::SocketAddr = CIBLE_SONDE.parse().unwrap();
+        match a.ip() {
+            std::net::IpAddr::V4(v4) => assert_eq!(v4.octets()[..3], [192, 0, 2]),
+            _ => panic!("la sonde doit viser une adresse IPv4 de documentation"),
+        }
     }
 }

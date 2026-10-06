@@ -33,6 +33,11 @@ windows-sys = { version = "0.59", features = [
     "Win32_Storage_FileSystem",
     "Win32_System_IO",
     "Win32_System_Pipes",
+    # La Garde, etape 3 : suivi d'evenements du noyau (advapi32 + tdh, DLL systeme).
+    "Win32_System_Diagnostics_Etw",
+    "Win32_System_Time",
+    # La Garde, etape 4 : cacher le compte de l'enclos de l'ecran de session.
+    "Win32_System_Registry",
 ] }
 
 # Piege 3 (SAC) : les release non signes se font bloquer, les debug passent.

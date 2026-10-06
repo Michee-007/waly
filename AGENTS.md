@@ -1,7 +1,13 @@
-# Waly — Knowledge Navigator 100 % local
+# Waly — un système d'intelligence personnelle, sous ta garde
 
-Agent personnel(a personal intelligence system) local : voix temps réel FR & EN, vision (caméra « mode appel » + écran),
-mémoire, agents cowork supervisés, computer use. Cloud strictement opt-in (BYOK).
+**« Tu vois ce que l'IA touche. Tu coupes quand tu veux. »** (identité du
+2026-10-06, `docs/ADR-2026-10-06-identite-l-intelligence-sous-ta-garde.md` ;
+ne plus écrire « rien ne sort » seul ni « 100 % local » en bannière ; garder
+« système d'intelligence personnelle » / « personal intelligence system » :
+Michée tient à l'image d'un SYSTÈME, pas d'un assistant de plus).
+Système d'intelligence personnelle local et scellé par défaut : voix temps réel FR & EN, vision (caméra « mode appel » + écran),
+mémoire, agents cowork supervisés, computer use, et la Garde (voir et couper ce que
+Waly et les autres agents de la machine touchent). Cloud strictement opt-in (BYOK).
 Réponds en français. Documente les décisions en ADR dans `docs/` (culture existante).
 
 **Ce dépôt vit à `C:\waly` (Windows), PAS dans WSL** — code, moteurs et modèles au même
@@ -213,6 +219,49 @@ tous moteurs). Les accélérateurs gagnent sur le PRÉFILL (NPU : ×16 mesuré).
    mourrait en silence). Partage entre deux Waly : `partage.rs` + relais
    `crates/waly-relais` — ne pas toucher au chiffrement (`crypto_box`) sans
    ADR.
+
+14. **Un état affiché se prouve par un essai, pas par une déclaration**
+   (vécu 2026-10-01 et 2026-10-06) : deux fois le service a répondu « scellé »
+   alors qu'aucun filtre ne visait le bon programme. `sceau::sonder` fait
+   l'essai (vers `192.0.2.1`, adresse de documentation : refus en 0 ms sous
+   scellé, expiration sinon) ; l'interface et `sceau::actif()` en dépendent.
+   Toute nouvelle garantie affichée suit la même règle. Pour essayer le
+   scellé à la main : poser l'exe sous `C:\waly\data` — dans une session
+   Claude de bureau, `%LOCALAPPDATA%` et `%TEMP%` sont redirigés et
+   invisibles pour le service SYSTEM. Le scellé vaut par CHEMIN d'exe : un
+   programme enfant d'un autre nom n'est pas couvert (problème ouvert, voir
+   `docs/AUDIT-2026-10-02-promesses-rejouees.md`).
+
+15. **L'enclos (Garde, étape 4, ADR 2026-10-06)** : un compte Windows à part,
+   `WalyEnclos`. Vécus du banc : (a) `REVOKE_ACCESS` de `SetEntriesInAclW`
+   retire les permissions mais LAISSE les refus → retirer soi-même les
+   entrées du compte (`GetAce`/`DeleteAce`) ; (b) le nom d'un « job »
+   disparaît quand plus personne n'en tient de poignée, même s'il contient
+   des processus → en déposer une dans le processus lancé (`DuplicateHandle`) ;
+   (c) hors du profil, tout compte ÉCRIT déjà (`C:\waly`, `C:\Users\Public`) →
+   « lecture » doit poser un refus d'écrire ; (d) `C:\waly\data` (la base)
+   est hors du profil : coupée d'office à l'enclos, ne jamais la donner ;
+   (e) PowerShell 5.1 rend un code de sortie VIDE pour un processus lancé
+   avec `-Credential` ; (f) un heredoc bash du harnais mange les `\` : pour
+   un correctif qui contient des chemins Windows, écrire un script avec
+   l'outil d'écriture puis le lancer. Le mot de passe du compte ne passe
+   JAMAIS en argument (fichier du profil, effacé par le programme élevé).
+   Essayer sans UAC : `waly enclos …` (le compte existe sur la machine de
+   référence ; le retirer : `waly-seal-svc enclos supprimer`, élevé).
+
+16. **Smart App Control à l'installation (vécu 2026-10-06, quatre blocages)** :
+   (a) le service bâti peut être refusé APRÈS son installation : l'ancien est
+   déjà arrêté, donc plus de scellé. **Essayer le binaire AVANT d'installer**
+   (`waly-seal-svc.exe enclos etat`, sans élévation, suffit à obtenir le
+   verdict) et changer `SAC_REROLL` jusqu'à ce qu'il passe ; (b) l'installeur
+   a son propre sel : `SAC_SEL=n bash …/build-installer.sh` ; (c) « Permission
+   denied » dans Git Bash = blocage SAC, pas un souci de droits ; (d) l'étape
+   `setup` du service demande l'accord Windows : sans réponse, l'installeur
+   finit quand même et laisse l'ancien service. La relancer seule :
+   `%LOCALAPPDATA%\Programs\Waly\waly-seal-svc.exe setup` (élevé).
+   Essai piloté de la Garde : `apps/desktop/e2e/e2e-garde-enclos.js` (plusieurs
+   agents portent le même nom, dont la session Claude en cours : toujours
+   vérifier le PROGRAMME affiché avant de cliquer).
 
 ## Commandes
 - Itération rapide (WSL) : `cargo check --workspace`, `cargo test` (waly-voice : 20 tests).

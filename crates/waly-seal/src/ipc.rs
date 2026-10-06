@@ -48,6 +48,16 @@ pub fn exe_admissible(chemin: &str) -> bool {
     base == "flm.exe" || (base.starts_with("waly") && base.ends_with(".exe"))
 }
 
+/// Refus de `Rejoindre` quand aucun filtre ne peut viser l'exe.
+pub const INTROUVABLE: &str = "exe introuvable pour le service : aucun filtre pose";
+
+/// Le service voit-il ce programme ? Un fichier qu'il ne voit pas ne reçoit
+/// AUCUN filtre : répondre « scellé » serait faux (vécu 2026-10-06 — un exe
+/// invisible pour SYSTEM recevait « ok » et sortait librement).
+pub fn fichier_visible(exe: &str) -> bool {
+    !exe.is_empty() && std::path::Path::new(exe).is_file()
+}
+
 /// Id de session STABLE dérivé du chemin d'exe d'un agent tiers (chantier C).
 /// Toujours **négatif** (≠ périmètre 0, ≠ sessions Waly positives) → `seal` /
 /// `unseal` / `journal` par exe sont cohérents et idempotents. FNV-1a sur le
@@ -116,8 +126,38 @@ pub enum Requete {
     Journal { session: i64 },
     /// État : sessions scellées + version du service.
     Etat,
+    /// La Garde, étape 3 : régler ce que le service OBSERVE (fichiers ouverts
+    /// ou écrits, programmes lancés, connexions). `mode` : « rien » (défaut au
+    /// démarrage du service), « agents » (les programmes de `exes` et ce
+    /// qu'ils lancent) ou « tout » (toute la machine). Allumer exige un client
+    /// ÉLEVÉ ; éteindre est permis à tous.
+    Regarder { mode: String, exes: Vec<String> },
+    /// Les observations plus récentes que `apres`, et le réglage en cours.
+    Observations { apres: u64 },
     /// Sonde de vivacité.
     Ping,
+}
+
+pub const REGARD_RIEN: &str = "rien";
+pub const REGARD_AGENTS: &str = "agents";
+pub const REGARD_TOUT: &str = "tout";
+
+/// Une chose qu'un programme a faite, vue par le service. `objet` est un
+/// chemin, un programme lancé ou « adresse:port » — jamais un contenu.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct Observation {
+    /// numéro d'ordre (croissant ; une observation répétée reprend un numéro neuf)
+    pub n: u64,
+    /// horodatage unix (s) de la dernière fois
+    pub t: u64,
+    /// le programme (chemin complet)
+    pub exe: String,
+    pub pid: u32,
+    /// ouvert | cree | ecrit | supprime | renomme | lance | connecte
+    pub genre: String,
+    pub objet: String,
+    /// combien de fois
+    pub fois: u32,
 }
 
 /// Nombre maximal d'exécutables dans une requête, et dans le périmètre.
@@ -164,7 +204,19 @@ pub fn autoriser(req: &Requete, eleve: bool) -> Result<(), &'static str> {
         Requete::Rejoindre { exe } => {
             if exe_admissible(exe) { Ok(()) } else { Err("exe non admissible au perimetre") }
         }
-        Requete::Journal { .. } | Requete::Etat | Requete::Ping => Ok(()),
+        Requete::Regarder { mode, exes } => match mode.as_str() {
+            REGARD_RIEN => Ok(()),
+            REGARD_TOUT | REGARD_AGENTS if !eleve => {
+                Err("surveillance refusee : elevation requise (relance en administrateur)")
+            }
+            REGARD_TOUT => Ok(()),
+            REGARD_AGENTS if exes.is_empty() || exes.len() > EXES_MAX => {
+                Err("liste d'executables vide ou trop longue")
+            }
+            REGARD_AGENTS => Ok(()),
+            _ => Err("mode de surveillance inconnu (rien, agents ou tout)"),
+        },
+        Requete::Journal { .. } | Requete::Etat | Requete::Ping | Requete::Observations { .. } => Ok(()),
     }
 }
 
@@ -187,6 +239,14 @@ pub enum Succes {
     Fait { fait: bool },
     /// réponse à Journal
     Journal { drops: Vec<Sortie> },
+    /// réponse à Regarder / Observations
+    Regard {
+        mode: String,
+        exes: Vec<String>,
+        observations: Vec<Observation>,
+        /// numéro de la dernière observation connue (à repasser dans `apres`)
+        dernier: u64,
+    },
     /// réponse à Etat
     Etat {
         sessions: Vec<i64>,
@@ -205,6 +265,50 @@ impl Reponse {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn la_surveillance_s_allume_en_eleve_et_s_eteint_par_tous() {
+        let r = |mode: &str, exes: &[&str]| Requete::Regarder { mode: mode.into(), exes: exes.iter().map(|s| s.to_string()).collect() };
+        // Éteindre et lire : tout le monde.
+        assert!(autoriser(&r("rien", &[]), false).is_ok());
+        assert!(autoriser(&Requete::Observations { apres: 0 }, false).is_ok());
+        // Allumer : élévation requise, pour toute la machine comme pour un agent.
+        assert!(autoriser(&r("tout", &[]), false).is_err());
+        assert!(autoriser(&r("agents", &[r"C:\x\agent.exe"]), false).is_err());
+        assert!(autoriser(&r("tout", &[]), true).is_ok());
+        assert!(autoriser(&r("agents", &[r"C:\x\agent.exe"]), true).is_ok());
+        // « agents » sans programme, ou un mode inventé : refusé même élevé.
+        assert!(autoriser(&r("agents", &[]), true).is_err());
+        assert!(autoriser(&r("partout", &[]), true).is_err());
+    }
+
+    #[test]
+    fn le_fil_de_la_surveillance_est_fige() {
+        let j = serde_json::to_string(&Requete::Regarder { mode: "tout".into(), exes: vec![] }).unwrap();
+        assert_eq!(j, r#"{"cmd":"regarder","mode":"tout","exes":[]}"#);
+        let j = serde_json::to_string(&Requete::Observations { apres: 7 }).unwrap();
+        assert_eq!(j, r#"{"cmd":"observations","apres":7}"#);
+        let rep = Reponse::Ok(Succes::Regard { mode: "rien".into(), exes: vec![], observations: vec![], dernier: 0 });
+        let j = serde_json::to_string(&rep).unwrap();
+        match serde_json::from_str::<Reponse>(&j).unwrap() {
+            Reponse::Ok(Succes::Regard { mode, dernier, .. }) => assert_eq!((mode.as_str(), dernier), ("rien", 0)),
+            autre => panic!("relu de travers : {autre:?}"),
+        }
+    }
+
+    #[test]
+    fn un_exe_invisible_n_est_pas_dit_scelle() {
+        // Introuvable, vide, ou un dossier : le service doit refuser.
+        assert!(!fichier_visible(r"C:\introuvable\waly-x.exe"));
+        assert!(!fichier_visible(""));
+        assert!(!fichier_visible(&std::env::temp_dir().to_string_lossy()));
+        // Un vrai fichier est vu.
+        let f = std::env::temp_dir().join(format!("waly-seal-vu-{}.exe", std::process::id()));
+        std::fs::write(&f, b"x").unwrap();
+        assert!(fichier_visible(&f.to_string_lossy()));
+        let _ = std::fs::remove_file(&f);
+        assert!(!fichier_visible(&f.to_string_lossy()));
+    }
 
     #[test]
     fn perimetre_waly_admissible_user_level() {

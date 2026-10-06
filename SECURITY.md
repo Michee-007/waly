@@ -30,3 +30,6 @@ otherwise.
   that hardening are in scope.
 - The honest guarantee/non-guarantee list lives in
   `docs/ONEPAGER-2026-07-21-huis-clos-conformite.md`.
+- Defects already found and fixed, and the problems still open, are listed
+  in `docs/AUDIT-2026-10-02-promesses-rejouees.md`. A confirmed report is
+  added there once fixed.

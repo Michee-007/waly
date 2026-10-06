@@ -299,9 +299,23 @@ impl Sealer {
         if self.perimetre_exes.len() >= crate::ipc::EXES_MAX {
             return Err("perimetre plein".into());
         }
+        // Un fichier que le service ne voit pas ne recoit AUCUN filtre (`seal`
+        // le saute). Repondre « scelle » serait faux : on refuse, et on le dit
+        // (vecu 2026-10-06 : un exe invisible pour SYSTEM recevait « ok »).
+        if !crate::ipc::fichier_visible(&chemin_reel(exe)) {
+            return Err(crate::ipc::INTROUVABLE.into());
+        }
+        let avant = self.filtres.get(&PERIMETRE).map(|v| v.len()).unwrap_or(0);
         self.perimetre_exes.push(exe.to_string());
         let liste = self.perimetre_exes.clone();
-        self.seal(PERIMETRE, &liste)
+        let n = self.seal(PERIMETRE, &liste)?;
+        if n <= avant {
+            // Le noyau n'a rien pose pour lui (identifiant d'application
+            // introuvable) : meme refus, et il ne reste pas dans la liste.
+            self.perimetre_exes.pop();
+            return Err(crate::ipc::INTROUVABLE.into());
+        }
+        Ok(n)
     }
 
     /// Une session est-elle scellée ?

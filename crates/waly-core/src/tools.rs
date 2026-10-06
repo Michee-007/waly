@@ -221,6 +221,16 @@ impl Registry {
         if let Err(e) = validate_present_fields(&spec.parameters, &args) {
             return Dispatched::Rejected(e);
         }
+        // La Garde : un accès coupé par l'utilisateur est refusé ici, avant
+        // toute demande d'approbation et toute exécution — et le refus est noté.
+        let ressource = crate::garde::ressource_de(&call.name);
+        if let (Some(r), Some(conn)) = (ressource, ctx.approvals) {
+            if !crate::garde::permis(conn, r) {
+                let quoi = crate::garde::decrire(&call.name, &args);
+                crate::garde::noter(conn, r, &format!("{quoi} : refusé, accès coupé"), true);
+                return Dispatched::Blocked(crate::garde::refus(r));
+            }
+        }
         // 4. Gate de risque : sensible ⟹ confirmation humaine avant exécution.
         // La demande est PERSISTÉE (24 h) : elle survit au tour et se résout
         // par resoudre_attentes après le oui explicite. Sans base : refus
@@ -261,7 +271,13 @@ impl Registry {
         }
         // 6. Exécution ; l'erreur runtime reste un résultat lisible.
         match tool.run(&args) {
-            Ok(out) => Dispatched::Done(out),
+            Ok(out) => {
+                // La Garde : ce que Waly vient de toucher (le geste, pas le contenu).
+                if let (Some(r), Some(conn)) = (ressource, ctx.approvals) {
+                    crate::garde::noter(conn, r, &crate::garde::decrire(&call.name, &args), false);
+                }
+                Dispatched::Done(out)
+            }
             Err(e) => Dispatched::Done(format!("erreur: {e}")),
         }
     }
@@ -314,8 +330,22 @@ impl Registry {
             Ok(None) => return format!("#{id}: introuvable, expiree ou deja traitee"),
             Err(e) => return format!("#{id}: erreur ({e})"),
         };
-        let outcome = self.execute_approved(&pending);
+        // La Garde vaut aussi pour une action approuvée : l'accès a pu être
+        // coupé entre la demande et le oui.
+        let ressource = crate::garde::ressource_de(&pending.tool_name);
+        let args_notes = serde_json::from_str::<serde_json::Value>(&pending.tool_args).unwrap_or_default();
+        let quoi = crate::garde::decrire(&pending.tool_name, &args_notes);
+        let outcome = match ressource {
+            Some(r) if !crate::garde::permis(conn, r) => {
+                crate::garde::noter(conn, r, &format!("{quoi} : refusé, accès coupé"), true);
+                format!("erreur: {}", crate::garde::refus(r))
+            }
+            _ => self.execute_approved(&pending),
+        };
         let success = !outcome.starts_with("erreur");
+        if let (true, Some(r)) = (success, ressource) {
+            crate::garde::noter(conn, r, &quoi, false);
+        }
         if let Err(e) = crate::store::finish_pending(conn, id, success) {
             return format!("#{id}: executee mais statut non enregistre ({e})");
         }
@@ -456,6 +486,62 @@ mod tests {
             self.executions.set(self.executions.get() + 1);
             Ok(format!("envoye a {}", args["a"].as_str().unwrap_or("?")))
         }
+    }
+
+    /// Outil qui touche aux fichiers : compte ses exécutions.
+    struct Lire {
+        executions: std::rc::Rc<std::cell::Cell<u32>>,
+    }
+    impl Tool for Lire {
+        fn spec(&self) -> ToolSpec {
+            ToolSpec {
+                name: "lire_fichier".into(),
+                description: "lit un fichier".into(),
+                parameters: serde_json::json!({"type": "object", "properties": {"chemin": {"type": "string"}}}),
+            }
+        }
+        fn run(&self, _args: &serde_json::Value) -> Result<String, String> {
+            self.executions.set(self.executions.get() + 1);
+            Ok("CONTENU SECRET".into())
+        }
+    }
+
+    #[test]
+    fn la_garde_note_ce_qui_est_touche_et_refuse_ce_qui_est_coupe() {
+        use crate::garde::{self, Ressource};
+        let conn = crate::store::open(":memory:").unwrap();
+        let execs = std::rc::Rc::new(std::cell::Cell::new(0));
+        let mut r = Registry::default();
+        r.register(Box::new(Lire { executions: execs.clone() }));
+        let appel = call("lire_fichier", r#"{"chemin":"C:\\docs\\a.txt"}"#);
+
+        // Accès permis : l'outil tourne, le registre note le chemin, pas le contenu.
+        let mut g = LoopGuard::default();
+        let mut c = TurnCtx { user_message: "lis", loop_guard: &mut g, approvals: Some(&conn) };
+        assert!(matches!(r.dispatch(&appel, &mut c), Dispatched::Done(_)));
+        assert_eq!(execs.get(), 1);
+        let l = garde::lignes(&conn, 10).unwrap();
+        assert_eq!(l[0].detail, "a lu C:\\docs\\a.txt");
+        assert!(!l[0].refuse && !l[0].detail.contains("SECRET"));
+
+        // Accès coupé : refusé AVANT exécution, et le refus est noté.
+        garde::regler(&conn, Ressource::Fichiers, false).unwrap();
+        let mut g = LoopGuard::default();
+        let mut c = TurnCtx { user_message: "lis", loop_guard: &mut g, approvals: Some(&conn) };
+        match r.dispatch(&appel, &mut c) {
+            Dispatched::Blocked(m) => assert!(m.contains("Fichiers"), "{m}"),
+            autre => panic!("attendu un refus, obtenu {autre:?}"),
+        }
+        assert_eq!(execs.get(), 1, "un accès coupé ne doit rien exécuter");
+        let l = garde::lignes(&conn, 10).unwrap();
+        assert!(l[0].refuse && l[0].detail.contains("a.txt"));
+
+        // Rendu : l'outil tourne de nouveau.
+        garde::regler(&conn, Ressource::Fichiers, true).unwrap();
+        let mut g = LoopGuard::default();
+        let mut c = TurnCtx { user_message: "lis", loop_guard: &mut g, approvals: Some(&conn) };
+        assert!(matches!(r.dispatch(&appel, &mut c), Dispatched::Done(_)));
+        assert_eq!(execs.get(), 2);
     }
 
     fn call(name: &str, arguments: &str) -> ToolCall {

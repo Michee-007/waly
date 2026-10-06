@@ -7,8 +7,19 @@
 ; Prerequis machine : WebView2 Runtime (present sur tout Windows 11 a jour).
 ; ASCII pur (culture piege 2) ; textes sans accents assumes.
 
+; Sel Smart App Control (piege 3) : le verdict vaut par binaire. Si
+; l'installeur est bloque, relancer build-installer.sh avec SAC_SEL=n : le
+; sel entre dans les informations de version, donc dans l'empreinte.
+!ifndef SAC_SEL
+  !define SAC_SEL 1
+!endif
 Unicode true
 Name "Waly"
+VIProductVersion "0.1.0.${SAC_SEL}"
+VIAddVersionKey "ProductName" "Waly"
+VIAddVersionKey "FileDescription" "Installeur de Waly"
+VIAddVersionKey "FileVersion" "0.1.0.${SAC_SEL}"
+VIAddVersionKey "LegalCopyright" "MIT"
 OutFile "${OUT_PATH}"
 InstallDir "$LOCALAPPDATA\Programs\Waly"
 RequestExecutionLevel user

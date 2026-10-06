@@ -117,6 +117,80 @@ fn materiel() {
     );
 }
 
+/// `waly enclos …` : l'enclos de la Garde, sans l'interface.
+///   etat | essai
+///   creer [chemin-du-service]        (Windows demande l'accord)
+///   donner <dossier> [ecriture]      couper <dossier>      reprendre <dossier>
+///   lancer <programme> [arguments…]  arreter <programme>
+fn enclos(a: &[String]) {
+    use waly_core::enclos::{self, Droit};
+    let conn = match store::open(&store::chemin_par_defaut()) {
+        Ok(c) => c,
+        Err(e) => return eprintln!("base : {e}"),
+    };
+    let dire = |d: &enclos::Dossier| {
+        let essai = match (d.lit, d.ecrit) {
+            (Some(l), Some(e)) => format!("essai : {}, {}", if l { "lit" } else { "ne lit pas" }, if e { "écrit" } else { "n'écrit pas" }),
+            _ => "pas essayé".into(),
+        };
+        let tenu = match d.conforme() {
+            Some(true) => "TENU",
+            Some(false) => "NON TENU",
+            None => "?",
+        };
+        println!("  {:9} {}  [{essai} -> {tenu}] {}", d.droit.cle(), d.chemin, d.pourquoi);
+    };
+    let regler = |chemin: Option<&String>, droit: Option<Droit>| match chemin {
+        None => eprintln!("il manque le dossier"),
+        Some(c) => match enclos::regler(&conn, c, droit, "") {
+            Ok(Some(d)) => dire(&d),
+            Ok(None) => println!("  repris : {c}"),
+            Err(e) => eprintln!("refusé : {e}"),
+        },
+    };
+    match a.first().map(String::as_str) {
+        Some("creer") => {
+            let r = match a.get(1) {
+                Some(svc) => enclos::creer_avec(&conn, svc),
+                None => enclos::creer(&conn),
+            };
+            match r {
+                Ok(()) => println!("enclos créé (compte {})", enclos::COMPTE),
+                Err(e) => eprintln!("échec : {e}"),
+            }
+        }
+        Some("donner") => regler(a.get(1), Some(if a.get(2).map(String::as_str) == Some("ecriture") { Droit::Ecriture } else { Droit::Lecture })),
+        Some("couper") => regler(a.get(1), Some(Droit::Coupe)),
+        Some("reprendre") => regler(a.get(1), None),
+        Some("essai") => match enclos::tout_essayer(&conn) {
+            Ok(invisible) => {
+                println!("ton profil ({}) : {}", enclos::profil(), if invisible { "invisible pour l'enclos (essai)" } else { "LISIBLE par l'enclos" });
+                enclos::dossiers(&conn).iter().for_each(dire);
+            }
+            Err(e) => eprintln!("échec : {e}"),
+        },
+        Some("lancer") if a.len() > 1 => {
+            let ligne = a[1..].iter().map(|m| if m.contains(' ') { format!("\"{m}\"") } else { m.clone() }).collect::<Vec<_>>().join(" ");
+            let nom = std::path::Path::new(&a[1]).file_stem().map(|s| s.to_string_lossy().into_owned()).unwrap_or_default();
+            match enclos::lancer(&conn, &nom, &a[1], &ligne) {
+                Ok(pid) => println!("lancé dans l'enclos : PID {pid}"),
+                Err(e) => eprintln!("échec : {e}"),
+            }
+        }
+        Some("arreter") if a.len() > 1 => println!("{} processus arrêté(s)", enclos::arreter(&conn, &a[1], true)),
+        _ => {
+            println!("compte {} : {}", enclos::COMPTE, if enclos::existe() { if enclos::pret(&conn) { "prêt" } else { "existe, mais Waly n'a pas son secret (« waly enclos creer »)" } } else { "absent" });
+            if let Some((invisible, quand)) = enclos::essai_profil(&conn) {
+                println!("ton profil : {} (essai du {quand})", if invisible { "invisible pour l'enclos" } else { "LISIBLE par l'enclos" });
+            }
+            enclos::dossiers(&conn).iter().for_each(dire);
+            for ag in enclos::agents(&conn) {
+                println!("  agent {} : {} processus {:?}", ag.nom, ag.pids.len(), ag.pids);
+            }
+        }
+    }
+}
+
 fn main() {
     let args: Vec<String> = std::env::args().collect();
     if args.get(1).map(String::as_str) == Some("embed-bench") {
@@ -127,6 +201,9 @@ fn main() {
     }
     if args.get(1).map(String::as_str) == Some("materiel") {
         return materiel();
+    }
+    if args.get(1).map(String::as_str) == Some("enclos") {
+        return enclos(&args[2..]);
     }
     let llm = LlmClient::new("127.0.0.1", waly_core::llm::port_par_defaut(),&waly_core::llm::modele_par_defaut());
     let conn = open_db();

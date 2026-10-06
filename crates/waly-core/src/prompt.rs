@@ -32,8 +32,11 @@ pub fn inject_context(base: &str, conn: &Connection) -> String {
             i
         ));
     }
-    if let Ok(mems) = store::active_memories(conn) {
+    // La Garde : mémoire coupée = aucun souvenir au prompt (et c'est noté).
+    let memoire_permise = crate::garde::permis(conn, crate::garde::Ressource::Memoire);
+    if let Ok(mems) = store::active_memories(conn).map(|m| if memoire_permise { m } else { Vec::new() }) {
         if !mems.is_empty() {
+            crate::garde::noter(conn, crate::garde::Ressource::Memoire, "a relu ses souvenirs pour la conversation", false);
             p.push_str(&format!(
                 "\nCe que tu sais deja sur {} (tes souvenirs) :",
                 crate::user::designation()
@@ -185,7 +188,7 @@ pub fn conscience_sceau(actif: bool) -> &'static str {
          SEULE chose que le huis clos t'interdit, c'est d'aller chercher une \
          donnee EN DIRECT en ligne (actu du jour, meteo, cours, une page web \
          precise) ou d'envoyer quelque chose dehors ; la, et SEULEMENT la, tu \
-         dis simplement que tu es scelle et que rien ne sort."
+         dis simplement que tu es scelle : rien ne sort sans son accord."
     } else {
         ""
     }

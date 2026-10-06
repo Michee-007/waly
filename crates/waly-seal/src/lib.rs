@@ -9,12 +9,16 @@
 //! Ce crate ne remonte PAS dans waly-core (windows-sys lourd). Le client parle
 //! au pipe via `std::fs`.
 
+pub mod enclos;
 pub mod ipc;
+pub mod tri;
 
 #[cfg(windows)]
 pub mod wfp;
 #[cfg(windows)]
 pub mod service;
+#[cfg(windows)]
+pub mod regard;
 
 /// Version du service (affichée dans l'état, utile au diagnostic terrain).
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");

@@ -42,6 +42,33 @@ is the most self-contained brick, and it is useful to other local agents.
    before actually sealing one from the CLI. *Touch:* `src/ipc.rs`,
    `src/bin/waly-seal-svc.rs`.
 
+### Open design problems (bigger, and where we most need other minds)
+
+These are not small tasks. They are the open problems listed in
+[`AUDIT-2026-10-02-promesses-rejouees.md`](AUDIT-2026-10-02-promesses-rejouees.md),
+each with the direction we intend to take. A written proposal, a counter-
+argument or a measurement is a full contribution.
+
+- **Seal by identity, not by path.** Today a different program launched by a
+  sealed one escapes. Anthropic's `sandbox-runtime` fences a dedicated
+  account instead. Compare both designs for an assistant that needs the
+  microphone and the camera. *Start from:* `crates/waly-seal/src/wfp.rs`.
+- **Seal the opened exits per destination.** A gateway of our own, sealed
+  except towards a local proxy held by the service, which only accepts the
+  host of the exit the user opened. *Start from:*
+  `docs/ADR-2026-10-01-lot3-sorties-ouvertes.md`,
+  `crates/waly-core/src/exterieur.rs`.
+- **Bring Ollama inside the seal.** Seal it by default, open its exit only
+  for the time of a download the user asked for.
+- **Try to break the seal.** Run the brick on your Windows, behind a VPN or
+  an antivirus that installs its own filters, from an unusual install path,
+  and report what you see. A bypass is the most valuable report we can get
+  (see [SECURITY.md](../SECURITY.md)).
+- **Measure a learned turn detector.** Our end-of-turn logic is a heuristic
+  on the transcript (`crates/waly-voice/src/endpoint.rs`). Open audio models
+  such as Pipecat's Smart Turn exist as small ONNX files and may do better
+  on the same ONNX runtime we already load. Bench it on French and report.
+
 ### The sharing relay (`waly-relais`)
 
 A tiny std-only HTTP server that stores sealed envelopes

@@ -239,6 +239,9 @@ pub fn uninstall() -> Result<(), String> {
 /// non-privilégié, `seal` renvoie une erreur, ignorée — l'état est lisible via
 /// `Etat.privilegie`).
 fn sceller_perimetre_demarrage() {
+    // Le regard est ETEINT au demarrage, et une session de suivi restee
+    // ouverte apres un arret brutal est fermee (ADR 2026-10-06).
+    let _ = crate::regard::regler(crate::ipc::REGARD_RIEN, &[]);
     if let Ok(mut g) = sealer().lock() {
         let _ = g.sceller_perimetre();
     }
@@ -482,6 +485,22 @@ fn traiter(ligne: &[u8], eleve: bool) -> Reponse {
     if let Err(raison) = crate::ipc::autoriser(&req, eleve) {
         return Reponse::err(raison);
     }
+    // Le regard (Garde, etape 3) ne touche pas au moteur de scelle.
+    let regard = |r: Result<(), String>| match r {
+        Ok(()) => {
+            let (mode, exes, observations, dernier) = crate::regard::lire(u64::MAX);
+            Reponse::Ok(Succes::Regard { mode, exes, observations, dernier })
+        }
+        Err(e) => Reponse::err(e),
+    };
+    let req = match req {
+        Requete::Regarder { mode, exes } => return regard(crate::regard::regler(&mode, &exes)),
+        Requete::Observations { apres } => {
+            let (mode, exes, observations, dernier) = crate::regard::lire(apres);
+            return Reponse::Ok(Succes::Regard { mode, exes, observations, dernier });
+        }
+        autre => autre,
+    };
     let m = sealer();
     let mut g = match m.lock() {
         Ok(g) => g,
@@ -510,6 +529,7 @@ fn traiter(ligne: &[u8], eleve: bool) -> Reponse {
             Reponse::Ok(Succes::Fait { fait: true })
         }
         Requete::Journal { session } => Reponse::Ok(Succes::Journal { drops: g.drops(session) }),
+        Requete::Regarder { .. } | Requete::Observations { .. } => Reponse::err("traite plus haut"),
     }
 }
 

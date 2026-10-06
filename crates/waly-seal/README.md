@@ -3,7 +3,8 @@
 **Block *all* outbound network traffic from a chosen program at the Windows
 kernel level, keep loopback alive, and log every blocked attempt — verifiably.**
 
-*« Huis clos » — il voit tout, rien ne sort.*
+*« Huis clos » — the seal behind Waly's Guard: you see what AI touches, you
+cut it off whenever you want.*
 
 `waly-seal` is the network-seal brick from [Waly](../../README.md), usable on
 its own. It was built to prove that a local AI assistant *cannot* phone home;
@@ -35,7 +36,14 @@ Honesty is part of the guarantee.
 - It does **not** cover *shared* executables (e.g. a system WebView/browser
   runtime): filtering `msedgewebview2.exe` would break every app that uses it.
   Those are hardened differently (CSP, background-networking flags), not by WFP.
-- It is **per-exe, not per-PID** (WFP does not filter by PID).
+- It is **per-exe, not per-PID** (WFP does not filter by PID) — and **not
+  per process tree**: a *different* program launched by a sealed one is not
+  covered. If the agent you seal can spawn `curl`, a shell or an interpreter,
+  seal those too, or use an identity-based sandbox (see *Related work*).
+- **A program the service cannot see is refused, not silently skipped.**
+  Joining the perimeter answers with an error when no filter could be
+  installed. The service's "sealed" answer is still a declaration: prove it
+  with a real attempt (Waly does, see `sceau::sonder` in `waly-core`).
 - **UDP** send is dropped and journaled, but `sendto` returns success locally —
   probe the journal, not the return code.
 - Windows only. A machine **administrator** can always remove the seal — but
@@ -84,6 +92,29 @@ journal. A copy of `curl.exe` at a distinct path makes a clean stand-in — see
 
 Measured on the reference machine: seal ~59 ms, unseal ~38 ms, zero resident
 process, no loopback overhead.
+
+## Related work — where it is done better
+
+Confining an agent's network is an active field. Know the alternatives
+before you choose this brick:
+
+- **Anthropic `sandbox-runtime`** (Windows support in alpha) fences egress
+  with WFP filters keyed on a **dedicated account's identity**, plus a local
+  proxy that only lets declared domains through. That covers child processes
+  and solves per-destination filtering — two things this brick does not do.
+- **OpenAI Codex** ships a Windows sandbox built on dedicated sandbox users
+  and firewall rules, for a coding agent.
+- **NVIDIA OpenShell / NemoClaw** (alpha) confines personal agents on Linux,
+  macOS and WSL 2, not on native Windows.
+- **simplewall, Portmaster, Fort Firewall** are general per-application
+  firewalls on the same Windows mechanism.
+
+What this brick is for: a small, readable, fail-closed seal owned by a SYSTEM
+service, with a narrow protocol and a journal — easy to audit, easy to embed
+in an assistant. Details and sources:
+[`docs/RESEARCH-2026-10-06-these-et-etat-de-l-art.md`](../../docs/RESEARCH-2026-10-06-these-et-etat-de-l-art.md).
+Open problems and where to help:
+[`docs/AUDIT-2026-10-02-promesses-rejouees.md`](../../docs/AUDIT-2026-10-02-promesses-rejouees.md).
 
 ## IPC (narrow by design)
 

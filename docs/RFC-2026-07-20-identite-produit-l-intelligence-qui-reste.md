@@ -1,5 +1,11 @@
 # RFC — Identité produit : « Waly, l'intelligence qui reste » (2026-07-20)
 
+> **Note du 2026-10-06.** Le nom d'identité et la devise de ce RFC sont
+> remplacés par « Waly, l'intelligence sous ta garde » / « Tu vois ce que l'IA
+> touche. Tu coupes quand tu veux. » : voir
+> [`ADR-2026-10-06-identite-l-intelligence-sous-ta-garde.md`](ADR-2026-10-06-identite-l-intelligence-sous-ta-garde.md).
+> Le reste du document est laissé tel qu'écrit à sa date.
+
 > Mandat : le 2026-07-20, Michée a délégué la direction produit (« la direction du
 > produit t'appartient ») avec pour critère : une identité pertinente et
 > révolutionnaire, à la pointe, alliant meilleure expérience imaginable, puissance

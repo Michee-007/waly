@@ -1045,7 +1045,13 @@ fn demarrer_veille(appel_port: u16) -> Result<std::process::Child, String> {
 /// ne s'allume QUE quand on active la voix ou la dictee. Opt-in developpeur :
 /// WALY_VEILLE=1.
 fn veille_desactivee() -> bool {
-    std::env::var("WALY_VEILLE").as_deref() != Ok("1")
+    if std::env::var("WALY_VEILLE").as_deref() != Ok("1") {
+        return true;
+    }
+    // La Garde : micro coupe = pas d'ecoute du mot d'eveil non plus. Le chien
+    // de garde de la veille relit cette condition : la coupure la laisse
+    // eteinte, le retablissement la relance.
+    base().map(|c| !waly_core::garde::permis(&c, Ressource::Micro)).unwrap_or(false)
 }
 
 /// Etat de presence du mode appel, partage entre le forwarder d'evenements,
@@ -3144,6 +3150,7 @@ fn core_appel_start(
     state: tauri::State<'_, Core>,
     chan: Channel<waly_sight::perception::Event>,
 ) -> Result<String, String> {
+    garde_passer(&[(Ressource::Camera, "a ouvert la caméra pour un appel"), (Ressource::Micro, "a écouté pendant un appel")])?;
     let (msg, cliche) = ask(&state, |tx| Cmd::AppelStart { chan, reply: tx })
         .ok_or_else(|| "cerveau indisponible".to_string())??;
     if let Ok(mut c) = state.cliche.lock() {
@@ -3178,6 +3185,7 @@ fn core_dictee_start(state: tauri::State<'_, Core>) -> Result<(), String> {
     if state.dictee.lock().map(|d| d.is_some()).unwrap_or(false) {
         return Ok(());
     }
+    garde_passer(&[(Ressource::Micro, "a écouté une dictée")])?;
     let exe = std::env::var("WALY_VOICE_EXE")
         .unwrap_or_else(|_| waly_core::chemins::exe("waly-voice"));
     if !std::path::Path::new(&exe).exists() {
@@ -3299,6 +3307,7 @@ fn core_dictee_annuler(state: tauri::State<'_, Core>) {
 /// d'ecran (selfview cachee), la voix ecrit dans la conversation ouverte.
 #[tauri::command(async)]
 fn core_voix_start(state: tauri::State<'_, Core>) -> Result<String, String> {
+    garde_passer(&[(Ressource::Micro, "a écouté pendant une conversation à voix haute")])?;
     ask(&state, |tx| Cmd::VoixStart { reply: tx })
         .ok_or_else(|| "cerveau indisponible".to_string())?
 }
@@ -3347,6 +3356,7 @@ fn core_appel_pouls(state: tauri::State<'_, Core>) -> serde_json::Value {
 /// compagnon (worker), PUIS ouvre la présence (cadre) et le pop-up flottant.
 #[tauri::command(async)]
 fn core_ecran_start(app: tauri::AppHandle, state: tauri::State<'_, Core>) -> Result<String, String> {
+    garde_passer(&[(Ressource::Ecran, "a regardé l'écran pendant un partage"), (Ressource::Micro, "a écouté pendant un partage d'écran")])?;
     let etat = ask(&state, |tx| Cmd::EcranStart { reply: tx })
         .ok_or_else(|| "cerveau indisponible".to_string())??;
     ouvrir_fenetres_ecran(&app)?;
@@ -3412,16 +3422,33 @@ fn core_ecran_fenetres() -> Vec<(i64, String)> {
 
 /// Etat du sceau pour l'UI : le service repond-il, a-t-il le privilege SYSTEM,
 /// et quelles sessions sont scellees. Le bouton « Sceller » s'y adapte.
+///
+/// `prouve` : le resultat d'un ESSAI reel depuis ce processus (`sceau::sonder`,
+/// vers une adresse de documentation). Le service peut repondre « scelle »
+/// sans qu'aucun filtre ne vise ce programme : l'interface n'affiche « tenu »
+/// que si l'essai n'a pas montre le contraire. Si l'essai passe, on se
+/// redeclare au service une fois et on reessaie (course au demarrage).
 #[tauri::command(async)]
 fn core_sceau_etat() -> serde_json::Value {
-    match waly_core::sceau::etat() {
-        Ok((sessions, version, privilegie)) => serde_json::json!({
-            "disponible": true, "privilegie": privilegie,
-            "version": version, "sessions": sessions,
-        }),
+    use waly_core::sceau::{self, Sonde};
+    match sceau::etat() {
+        Ok((sessions, version, privilegie)) => {
+            let mut prouve = sceau::sonder();
+            if prouve == Sonde::Ouverte && privilegie {
+                if let Ok(exe) = std::env::current_exe() {
+                    let _ = sceau::rejoindre(&exe.to_string_lossy(), None);
+                }
+                prouve = sceau::sonder_maintenant();
+            }
+            serde_json::json!({
+                "disponible": true, "privilegie": privilegie,
+                "version": version, "sessions": sessions, "prouve": prouve,
+                "age": sceau::age_sonde(),
+            })
+        }
         Err(_) => serde_json::json!({
             "disponible": false, "privilegie": false,
-            "version": "", "sessions": [],
+            "version": "", "sessions": [], "prouve": Sonde::Indeterminee,
         }),
     }
 }
@@ -4093,6 +4120,420 @@ fn core_agents() -> Result<serde_json::Value, String> {
     Ok(serde_json::to_value(a).unwrap_or_default())
 }
 
+use waly_core::garde::Ressource;
+
+/// Agents figes par la Garde (« Tout couper ») : cle `nom|exe` -> processus
+/// figes. Tenu en memoire : a la fermeture de Waly, tout est relance (un
+/// agent ne doit pas rester fige sans personne pour le relancer).
+fn figes() -> &'static Mutex<std::collections::HashMap<String, Vec<u32>>> {
+    static F: std::sync::OnceLock<Mutex<std::collections::HashMap<String, Vec<u32>>>> = std::sync::OnceLock::new();
+    F.get_or_init(|| Mutex::new(std::collections::HashMap::new()))
+}
+
+fn relancer_tous_les_figes() {
+    if let Ok(mut f) = figes().lock() {
+        for (_, pids) in f.drain() {
+            waly_core::agents_machine::relancer(&pids);
+        }
+    }
+}
+
+/// Fige un agent : tous SES processus (pas le programme, donc precis meme sur
+/// un moteur partage). Reversible par `core_agent_relancer`.
+#[tauri::command(async)]
+fn core_agent_figer(nom: String, exe: String) -> serde_json::Value {
+    let trouve = waly_core::agents_machine::trouver()
+        .into_iter()
+        .find(|a| a.nom == nom && a.exe.eq_ignore_ascii_case(&exe));
+    let Some(a) = trouve else {
+        return serde_json::json!({ "ok": false, "message": format!("{nom} ne tourne plus") });
+    };
+    let n = waly_core::agents_machine::figer(&a.pids);
+    if n == 0 {
+        return serde_json::json!({ "ok": false, "message": format!("Windows a refusé de figer {nom} (processus protégé ?)") });
+    }
+    if let Ok(mut f) = figes().lock() {
+        let liste = f.entry(format!("{nom}|{}", exe.to_lowercase())).or_default();
+        for p in &a.pids {
+            if !liste.contains(p) {
+                liste.push(*p);
+            }
+        }
+    }
+    if let Ok(conn) = base() {
+        let _ = waly_core::sceau::noter(&conn, "pose", &format!("{nom} figé par la Garde ({n} processus)"));
+    }
+    serde_json::json!({ "ok": true, "message": format!("{n} processus figé(s)") })
+}
+
+#[tauri::command(async)]
+fn core_agent_relancer(nom: String, exe: String) -> serde_json::Value {
+    let pids = figes().lock().ok().and_then(|mut f| f.remove(&format!("{nom}|{}", exe.to_lowercase()))).unwrap_or_default();
+    let n = waly_core::agents_machine::relancer(&pids);
+    if let Ok(conn) = base() {
+        let _ = waly_core::sceau::noter(&conn, "levee", &format!("{nom} relancé ({n} processus)"));
+    }
+    serde_json::json!({ "ok": true, "message": format!("{n} processus relancé(s)") })
+}
+
+// --- La Garde, etape 4 : l'enclos (compte Windows a part) -------------------
+
+/// L'enclos tel que la Garde le montre : le compte, l'essai du profil, les
+/// dossiers regles avec le resultat de leur sonde. Lecture seule, sans essai
+/// (les essais se font au reglage et sur demande).
+fn enclos_etat(conn: &rusqlite::Connection) -> serde_json::Value {
+    use waly_core::enclos;
+    let essai = enclos::essai_profil(conn);
+    let dossiers: Vec<serde_json::Value> = enclos::dossiers(conn)
+        .iter()
+        .map(|d| serde_json::json!({
+            "chemin": d.chemin, "droit": d.droit.cle(), "pourquoi": d.pourquoi,
+            "lit": d.lit, "ecrit": d.ecrit, "quand": d.essaye_at, "conforme": d.conforme(),
+        }))
+        .collect();
+    serde_json::json!({
+        "compte": enclos::COMPTE, "existe": enclos::existe(), "pret": enclos::pret(conn), "profil": enclos::profil(),
+        "profil_invisible": essai.as_ref().map(|e| e.0), "profil_essaye": essai.map(|e| e.1),
+        "dossiers": dossiers,
+    })
+}
+
+/// Cree le compte de l'enclos (Windows demande l'accord, une fois).
+#[tauri::command(async)]
+fn core_enclos_creer() -> serde_json::Value {
+    let conn = match base() {
+        Ok(c) => c,
+        Err(e) => return serde_json::json!({ "ok": false, "message": e }),
+    };
+    match waly_core::enclos::creer(&conn) {
+        Ok(()) => serde_json::json!({ "ok": true }),
+        Err(e) => serde_json::json!({ "ok": false, "message": e }),
+    }
+}
+
+/// Met un agent qui tourne dans l'enclos : on lui donne en lecture ce qu'il
+/// lui faut pour demarrer, on ferme l'instance en cours, on le relance sous
+/// le compte a part. Si la preparation echoue, rien n'est ferme.
+#[tauri::command(async)]
+fn core_enclos_mettre(nom: String, exe: String) -> serde_json::Value {
+    use waly_core::{agents_machine, enclos};
+    let non = |m: String| serde_json::json!({ "ok": false, "message": m });
+    let conn = match base() {
+        Ok(c) => c,
+        Err(e) => return non(e),
+    };
+    if !enclos::pret(&conn) {
+        if let Err(e) = enclos::creer(&conn) {
+            return non(e);
+        }
+    }
+    let Some(a) = agents_machine::trouver().into_iter().find(|a| a.nom == nom && a.exe.eq_ignore_ascii_case(&exe)) else {
+        return non(format!("{nom} ne tourne plus : lance-le, puis recommence"));
+    };
+    let donnes = match enclos::preparer(&conn, &nom, &exe, &a.ligne) {
+        Ok(d) => d,
+        Err(e) => return non(format!("{nom} n'a pas été touché. {e}")),
+    };
+    // S'il etait fige, on ne garde pas des identifiants qui vont disparaitre.
+    if let Ok(mut f) = figes().lock() {
+        if let Some(pids) = f.remove(&format!("{nom}|{}", exe.to_lowercase())) {
+            agents_machine::relancer(&pids);
+        }
+    }
+    let fermes = agents_machine::fermer(&a.pids);
+    std::thread::sleep(std::time::Duration::from_millis(900));
+    match enclos::lancer(&conn, &nom, &exe, &a.ligne) {
+        Ok(_) => serde_json::json!({ "ok": true, "donnes": donnes, "fermes": fermes }),
+        Err(e) => non(format!("{nom} a été fermé ({fermes} processus) mais n'a pas redémarré dans l'enclos : {e}")),
+    }
+}
+
+/// Relance un agent de l'enclos qui s'est arrete.
+#[tauri::command(async)]
+fn core_enclos_relancer(exe: String) -> serde_json::Value {
+    match base().and_then(|c| waly_core::enclos::relancer(&c, &exe)) {
+        Ok(_) => serde_json::json!({ "ok": true }),
+        Err(e) => serde_json::json!({ "ok": false, "message": e }),
+    }
+}
+
+/// Arrete un agent de l'enclos (lui et ce qu'il a lance). `oublier` : il
+/// quitte l'enclos ; l'utilisateur le relancera comme d'habitude.
+#[tauri::command(async)]
+fn core_enclos_arreter(exe: String, oublier: bool) -> serde_json::Value {
+    match base() {
+        Ok(conn) => {
+            let n = waly_core::enclos::arreter(&conn, &exe, oublier);
+            if oublier {
+                let _ = waly_core::sceau::noter(&conn, "levee", &format!("{exe} sorti de l'enclos"));
+            }
+            serde_json::json!({ "ok": true, "arretes": n })
+        }
+        Err(e) => serde_json::json!({ "ok": false, "message": e }),
+    }
+}
+
+/// Regle un dossier pour l'enclos. `droit` : « lecture », « ecriture »,
+/// « coupe », ou « reprendre » (retire le reglage). Sans `chemin`, Windows
+/// ouvre le choix d'un dossier. Chaque reglage est suivi de son essai.
+#[tauri::command(async)]
+fn core_enclos_dossier(chemin: Option<String>, droit: String) -> serde_json::Value {
+    use waly_core::enclos::{self, Droit};
+    let non = |m: String| serde_json::json!({ "ok": false, "message": m });
+    let voulu = match droit.as_str() {
+        "reprendre" => None,
+        d => match Droit::depuis(d) {
+            Some(d) => Some(d),
+            None => return non(format!("réglage inconnu : {d}")),
+        },
+    };
+    let chemin = match chemin.filter(|c| !c.trim().is_empty()) {
+        Some(c) => c,
+        None => {
+            let titre = match voulu {
+                Some(Droit::Coupe) => "Choisis le dossier à couper à l'enclos",
+                Some(Droit::Ecriture) => "Choisis le dossier que l'enclos pourra lire et modifier",
+                _ => "Choisis le dossier que l'enclos pourra lire",
+            };
+            match enclos::choisir_dossier(titre) {
+                Some(c) => c,
+                None => return serde_json::json!({ "ok": false, "annule": true }),
+            }
+        }
+    };
+    let conn = match base() {
+        Ok(c) => c,
+        Err(e) => return non(e),
+    };
+    match enclos::regler(&conn, &chemin, voulu, "") {
+        Ok(d) => serde_json::json!({
+            "ok": true, "chemin": chemin,
+            "lit": d.as_ref().and_then(|d| d.lit), "ecrit": d.as_ref().and_then(|d| d.ecrit),
+            "conforme": d.as_ref().and_then(|d| d.conforme()),
+        }),
+        Err(e) => non(e),
+    }
+}
+
+/// Refait tous les essais de l'enclos : chaque dossier regle, et le profil
+/// (qui doit rester invisible).
+#[tauri::command(async)]
+fn core_enclos_essai() -> serde_json::Value {
+    match base().and_then(|c| waly_core::enclos::tout_essayer(&c)) {
+        Ok(invisible) => serde_json::json!({ "ok": true, "profil_invisible": invisible }),
+        Err(e) => serde_json::json!({ "ok": false, "message": e }),
+    }
+}
+
+/// La Garde, pour les sessions ouvertes par l'interface (appel, voix, ecran,
+/// dictee) : TOUTES les ressources doivent etre permises, sinon rien ne
+/// s'ouvre. Refus et touches sont notes au registre.
+fn garde_passer(quoi: &[(Ressource, &str)]) -> Result<(), String> {
+    let conn = base()?;
+    if let Some((r, detail)) = quoi.iter().find(|(r, _)| !waly_core::garde::permis(&conn, *r)) {
+        waly_core::garde::noter(&conn, *r, &format!("{detail} : refusé, accès coupé"), true);
+        return Err(format!("L'accès « {} » est coupé dans la Garde. Rétablis-le pour continuer.", r.nom()));
+    }
+    for (r, detail) in quoi {
+        waly_core::garde::noter(&conn, *r, detail, false);
+    }
+    Ok(())
+}
+
+/// Releve ce que le service a observe depuis la derniere fois et l'inscrit
+/// au registre, au nom de l'agent. Rend (mode, programmes surveilles, erreur).
+/// Les programmes de Waly sont ecartes : son propre registre est exact.
+fn regard_relever(conn: &rusqlite::Connection, noms: &[(String, String)]) -> (String, Vec<String>, Option<String>) {
+    static VU: Mutex<u64> = Mutex::new(0);
+    let Ok(mut vu) = VU.lock() else { return ("rien".into(), Vec::new(), None) };
+    match waly_core::sceau::regard_lire(*vu) {
+        Ok((mode, exes, obs, dernier)) => {
+            if dernier < *vu {
+                *vu = 0; // le service a redemarre : son carnet repart de zero
+                return (mode, exes, None);
+            }
+            for o in &obs {
+                let base = o.exe.rsplit(['\\', '/']).next().unwrap_or(&o.exe).to_string();
+                if base.to_lowercase().starts_with("waly") {
+                    continue;
+                }
+                let agent = noms
+                    .iter()
+                    .find(|(exe, _)| exe.eq_ignore_ascii_case(&o.exe))
+                    .map(|(_, n)| n.clone())
+                    .or_else(|| waly_core::agents_machine::reconnaitre(&o.exe, "").map(String::from))
+                    .unwrap_or(base);
+                let (ressource, detail) = waly_core::garde::dire_observation(&o.genre, &o.objet);
+                waly_core::garde::noter_agent(conn, &agent, ressource, &detail);
+            }
+            *vu = dernier;
+            (mode, exes, None)
+        }
+        Err(e) => ("rien".into(), Vec::new(), Some(e)),
+    }
+}
+
+/// Regle la surveillance : « rien », « agents » (les programmes donnes et ce
+/// qu'ils lancent) ou « tout » (toute la machine). Allumer demande l'accord
+/// de Windows.
+#[tauri::command(async)]
+fn core_regard(mode: String, exes: Vec<String>) -> serde_json::Value {
+    match waly_core::sceau::regard_regler(&mode, &exes) {
+        Ok(()) => {
+            if let Ok(conn) = base() {
+                let quoi = match mode.as_str() {
+                    "tout" => "surveillance de toute la machine allumée".to_string(),
+                    "agents" => format!("surveillance allumée pour {} programme(s)", exes.len()),
+                    _ => "surveillance éteinte".to_string(),
+                };
+                let _ = waly_core::sceau::noter(&conn, if mode == "rien" { "levee" } else { "pose" }, &quoi);
+            }
+            serde_json::json!({ "ok": true })
+        }
+        Err(e) => serde_json::json!({ "ok": false, "message": e }),
+    }
+}
+
+/// Tout ce que la page « Garde » montre, en une lecture : l'etat prouve du
+/// scelle, les acces de Waly (permis ou coupes, dernier geste), les sorties
+/// ouvertes, les autres agents, les chiffres du jour et le fil.
+#[tauri::command(async)]
+fn core_garde() -> Result<serde_json::Value, String> {
+    use waly_core::{garde, sceau};
+    let conn = base()?;
+    let etat = core_sceau_etat();
+    let _ = sceau::drainer_journal(sceau::PERIMETRE, Some(&conn));
+    let acces: Vec<serde_json::Value> = Ressource::TOUTES
+        .into_iter()
+        .map(|r| {
+            let d = garde::dernier_par_ressource(&conn, r);
+            serde_json::json!({
+                "cle": r.cle(), "nom": r.nom(), "permis": garde::permis(&conn, r),
+                "dernier": d.as_ref().map(|l| l.detail.clone()), "quand": d.map(|l| l.at),
+            })
+        })
+        .collect();
+    // Ce que le service a observe des AUTRES programmes entre au registre
+    // avant de lire le fil.
+    let mut agents = agents_trouves(&conn);
+    let noms: Vec<(String, String)> = agents
+        .iter()
+        .filter_map(|a| Some((a["exe"].as_str()?.to_string(), a["nom"].as_str()?.to_string())))
+        .collect();
+    let (mode_regard, exes_regard, erreur_regard) = regard_relever(&conn, &noms);
+    for a in agents.iter_mut() {
+        let (nom, exe) = (a["nom"].as_str().unwrap_or("").to_string(), a["exe"].as_str().unwrap_or("").to_lowercase());
+        a["surveille"] = serde_json::json!(mode_regard == "tout" || exes_regard.contains(&exe));
+        a["vu_fichiers"] = serde_json::json!(garde::vus_par(&conn, &nom, "fichiers"));
+        a["vu_internet"] = serde_json::json!(garde::vus_par(&conn, &nom, "internet"));
+        a["vu_programmes"] = serde_json::json!(garde::vus_par(&conn, &nom, "programmes"));
+    }
+    let (touches, refus) = garde::comptes_du_jour(&conn);
+    let audit = sceau::lignes_audit(&conn, sceau::PERIMETRE, 60).unwrap_or_default();
+    let aujourdhui: String = conn
+        .query_row("SELECT date('now','localtime')", [], |r| r.get(0))
+        .unwrap_or_default();
+    let bloquees = audit.iter().filter(|l| l.genre == "bloque" && l.at.starts_with(&aujourdhui)).count() as i64;
+    // Le fil : le registre de Waly et le journal du scelle, fondus par date.
+    let mut fil: Vec<serde_json::Value> = garde::lignes(&conn, 300)
+        .unwrap_or_default()
+        .into_iter()
+        .map(|l| serde_json::json!({
+            "at": l.at, "agent": l.agent, "detail": l.detail, "ressource": l.ressource,
+            "genre": if l.agent == "Toi" { "toi" } else if l.refuse { "refus" } else { "touche" },
+        }))
+        .collect();
+    for l in &audit {
+        let (agent, genre, detail) = match l.genre.as_str() {
+            "bloque" => ("Waly", "refus", format!("sortie bloquée — {}", l.detail)),
+            "sortie" => ("Waly", "porte", format!("sortie ouverte — {}", l.detail)),
+            _ => continue,
+        };
+        fil.push(serde_json::json!({ "at": l.at, "agent": agent, "detail": detail, "genre": genre, "ressource": "internet" }));
+    }
+    fil.sort_by(|a, b| b["at"].as_str().cmp(&a["at"].as_str()));
+    fil.truncate(320);
+    Ok(serde_json::json!({
+        "sceau": etat, "acces": acces, "agents": agents,
+        "touches": touches, "refus": refus + bloquees, "fil": fil,
+        "regard": { "mode": mode_regard, "exes": exes_regard, "erreur": erreur_regard },
+        "enclos": enclos_etat(&conn),
+    }))
+}
+
+/// Coupe ou rend un acces de Waly. La memoire touche au prompt : on
+/// reconstruit la fenetre pour que la coupure vaille tout de suite.
+#[tauri::command(async)]
+fn core_garde_acces(state: tauri::State<'_, Core>, cle: String, permis: bool) -> Result<(), String> {
+    let r = Ressource::depuis(&cle).ok_or_else(|| format!("ressource inconnue : {cle}"))?;
+    waly_core::garde::regler(&base()?, r, permis).map_err(|e| e.to_string())?;
+    if r == Ressource::Memoire {
+        let _ = ask(&state, |tx| Cmd::Rebuild { reply: tx });
+    }
+    Ok(())
+}
+
+/// Les autres agents de la machine : ceux qui TOURNENT et que Waly reconnait
+/// (`agents_machine`), plus ceux deja scelles. Pour chacun : le programme sur
+/// lequel porte le scelle, s'il est partage avec d'autres logiciels, s'il est
+/// scelle, et ce qu'il a tente (sorties bloquees). Lecture seule.
+#[tauri::command(async)]
+fn core_agents_trouves() -> Result<serde_json::Value, String> {
+    let conn = store::open(&db_path()).map_err(|e| e.to_string())?;
+    Ok(serde_json::Value::Array(agents_trouves(&conn)))
+}
+
+fn agents_trouves(conn: &rusqlite::Connection) -> Vec<serde_json::Value> {
+    use waly_core::sceau;
+    let scelles = sceau::agents(conn).unwrap_or_default();
+    let mut lignes: Vec<serde_json::Value> = Vec::new();
+    let mut vus: Vec<String> = Vec::new();
+    let fig: Vec<String> = figes().lock().map(|f| f.keys().cloned().collect()).unwrap_or_default();
+    // L'enclos : les agents qu'on y a mis, et leurs processus en cours.
+    let dans_enclos = waly_core::enclos::agents(conn);
+    let pids_enclos: Vec<u32> = dans_enclos.iter().flat_map(|a| a.pids.iter().copied()).collect();
+    let mut decrire = |nom: String, exe: String, partage: bool, autres: usize, en_cours: bool, pids: &[u32]| {
+        let fige = fig.contains(&format!("{nom}|{}", exe.to_lowercase()));
+        // Dans l'enclos : TOUS ses processus y sont (ou il y est inscrit et
+        // arrete). Une instance lancee a la main, hors de l'enclos, se compte.
+        let dedans = pids.iter().filter(|p| pids_enclos.contains(p)).count();
+        let enclos = if pids.is_empty() { dans_enclos.iter().any(|a| a.exe.eq_ignore_ascii_case(&exe)) } else { dedans == pids.len() };
+        let hors_enclos = if dedans > 0 { pids.len() - dedans } else { 0 };
+        let scelle = scelles.iter().find(|a| a.exe.eq_ignore_ascii_case(&exe)).map(|a| a.actif).unwrap_or(false);
+        let (mut bloquees, mut derniere) = (0usize, String::new());
+        if scelle {
+            let s = sceau::session_pour_exe(&exe);
+            let _ = sceau::drainer_journal(s, Some(conn));
+            if let Ok(l) = sceau::lignes_audit(conn, s, 200) {
+                let b: Vec<_> = l.iter().filter(|x| x.genre == "bloque").collect();
+                bloquees = b.len();
+                derniere = b.first().map(|x| format!("{} · {}", x.at, x.detail)).unwrap_or_default();
+            }
+        }
+        lignes.push(serde_json::json!({
+            "nom": nom, "exe": exe, "partage": partage, "autres": autres,
+            "en_cours": en_cours, "scelle": scelle, "bloquees": bloquees, "derniere": derniere, "fige": fige,
+            "enclos": enclos, "hors_enclos": hors_enclos,
+        }));
+    };
+    for a in waly_core::agents_machine::trouver() {
+        vus.push(a.exe.to_lowercase());
+        decrire(a.nom, a.exe, a.partage, a.autres, true, &a.pids);
+    }
+    for a in &dans_enclos {
+        if !vus.contains(&a.exe.to_lowercase()) {
+            vus.push(a.exe.to_lowercase());
+            decrire(a.nom.clone(), a.exe.clone(), false, 0, false, &[]);
+        }
+    }
+    for a in &scelles {
+        if !vus.contains(&a.exe.to_lowercase()) {
+            decrire(a.nom.clone(), a.exe.clone(), false, 0, false, &[]);
+        }
+    }
+    lignes
+}
+
 /// Journal d'audit d'un agent tiers (draine le service puis renvoie les lignes).
 #[tauri::command(async)]
 fn core_agent_journal(exe: String) -> Result<serde_json::Value, String> {
@@ -4377,8 +4818,26 @@ pub fn run() {
             core_agent_seal,
             core_agent_unseal,
             core_agents,
+            core_agents_trouves,
+            core_garde,
+            core_garde_acces,
+            core_regard,
+            core_agent_figer,
+            core_agent_relancer,
+            core_enclos_creer,
+            core_enclos_mettre,
+            core_enclos_relancer,
+            core_enclos_arreter,
+            core_enclos_dossier,
+            core_enclos_essai,
             core_agent_journal
         ])
-        .run(tauri::generate_context!())
-        .expect("Erreur au lancement de Waly");
+        .build(tauri::generate_context!())
+        .expect("Erreur au lancement de Waly")
+        .run(|_app, evenement| {
+            // Waly se ferme : aucun agent ne reste fige derriere lui.
+            if let tauri::RunEvent::Exit = evenement {
+                relancer_tous_les_figes();
+            }
+        });
 }

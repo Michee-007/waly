@@ -88,6 +88,88 @@
   .me .s{font-size:11.5px;color:var(--soft);display:flex;align-items:center;gap:5px}
   .me .s i{width:6px;height:6px;border-radius:50%;background:var(--run)}
   .me .s.brise{color:var(--warn)}
+  /* La ligne d'etat EST la porte de la preuve (piste A, 2026-10-06). */
+  .side{position:relative}
+  .me .s.etat{border:0;background:none;font:inherit;font-size:11.5px;cursor:pointer;border-radius:6px;padding:1px 5px;margin-left:-5px;text-align:left}
+  .me .s.etat:hover{background:var(--hover);color:var(--ink)}
+  /* La Garde (2026-10-06) : un bouton toujours visible, une page, un graphe. */
+  .gardebtn{display:inline-flex;align-items:center;gap:7px;border:0;background:var(--ink);color:var(--bg);border-radius:999px;padding:3px 13px 3px 10px;font:inherit;font-size:12px;font-weight:500;cursor:pointer;margin-right:6px}
+  .gardebtn i{width:7px;height:7px;border-radius:50%;background:var(--run)}
+  .gardebtn.alerte i{background:var(--warn)}
+  .gardebtn.on{outline:2px solid var(--soft);outline-offset:1px}
+  .pw.gd{max-width:1040px;gap:0;container-type:inline-size}
+  .gd-haut{display:flex;flex-wrap:wrap;gap:14px 28px;align-items:flex-end;padding-bottom:10px}
+  .gd-grand{font-size:28px;line-height:1.2;flex:1 1 320px}
+  .gd-grand small{display:block;font-family:"Segoe UI Variable Text","Segoe UI",system-ui,sans-serif;font-size:12.5px;color:var(--soft);margin-top:5px}
+  .gd-compte{display:flex;gap:24px}
+  .gd-compte b{display:block;font-size:22px;font-weight:500;font-variant-numeric:tabular-nums;line-height:1.1}
+  .gd-compte span{font-size:11.5px;color:var(--soft)}
+  .gd-milieu{display:grid;grid-template-columns:minmax(0,1fr) 260px;border:1px solid var(--line);border-radius:16px;background:var(--card);overflow:hidden}
+  .gd-zone{padding:8px 10px 0;min-width:0}
+  .gd-carte{width:100%;height:auto;display:block}
+  .gd-carte text{font-family:"Segoe UI Variable Text","Segoe UI",system-ui,sans-serif;fill:var(--ink);font-size:12px;pointer-events:none}
+  .gd-carte .pale{fill:var(--faint);font-size:11px}
+  .gd-carte .machine{fill:var(--side);stroke:var(--line)}
+  .gd-carte .noeud{fill:var(--card);stroke:var(--ink);stroke-width:1.4;cursor:pointer}
+  .gd-carte .noeud.choisi{stroke-width:3}
+  .gd-carte .noeud.fige{stroke:var(--faint);stroke-dasharray:3 3}
+  .gd-carte .cloture{fill:none;stroke:var(--ink);stroke-width:1.2;pointer-events:none}
+  .gd-acces .e.doute{color:var(--warn);font-weight:600}
+  .gd-acces button>span:first-child{min-width:0;overflow-wrap:anywhere}
+  .gd-cote .gd-note{overflow-wrap:anywhere}
+  .gd-soustitre{font-size:11.5px;color:var(--faint);text-transform:uppercase;letter-spacing:.06em;margin-bottom:-6px}
+  .gd-carte .res{fill:var(--card);stroke:var(--line)}
+  .gd-carte .mur{stroke:var(--ink);stroke-width:3;stroke-linecap:round}
+  .gd-carte .net{fill:none;stroke:var(--faint);stroke-dasharray:3 4}
+  .gd-lien{stroke:var(--ink);stroke-width:1.3;opacity:.5;fill:none;pointer-events:none}
+  .gd-lien.coupe{stroke:var(--faint);opacity:.6;stroke-dasharray:1 5}
+  .gd-lien.vu{stroke-dasharray:2 4;opacity:.55}
+  .gd-regard{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;font-size:12.5px;color:var(--soft);padding:0 0 12px}
+  .gd-regard b{color:var(--ink);font-weight:600}
+  .gd-filtete{display:flex;align-items:center;gap:10px}
+  .gd-filtete .sect{flex:1}
+  .gd-lien.porte{stroke:var(--warn);opacity:.9}
+  .gd-touche{stroke:transparent;stroke-width:16;cursor:pointer;fill:none}
+  .gd-poignee{fill:var(--bg);stroke:var(--ink);stroke-width:1.2;cursor:pointer}
+  .gd-poignee.coupe{stroke:var(--faint)} .gd-poignee.porte{stroke:var(--warn)}
+  .gd-carte .signe{font-size:11px;text-anchor:middle}
+  .gd-grain{fill:var(--ink)} .gd-grain.non{fill:var(--warn)}
+  .gd-voix{padding:2px 8px 12px;font-size:13px;min-height:2.9em;color:var(--soft)}
+  .gd-voix.non{color:var(--warn)}
+  .gd-cote{border-left:1px solid var(--line);padding:16px;display:flex;flex-direction:column;gap:12px;min-width:0}
+  .gd-cote h3{margin:0;font-size:21px;font-weight:400}
+  .gd-pill{font-size:11.5px;border:1px solid var(--line);border-radius:999px;padding:1px 9px;align-self:flex-start;color:var(--soft)}
+  .gd-pill.ok{color:var(--run)} .gd-pill.non{color:var(--warn)}
+  .gd-acces{display:flex;flex-direction:column}
+  .gd-acces button{display:flex;justify-content:space-between;gap:10px;align-items:baseline;background:none;border:0;border-top:1px solid var(--line);padding:8px 0;cursor:pointer;text-align:left;font:inherit;font-size:13px;color:var(--ink)}
+  .gd-acces button:hover{background:var(--hover)}
+  .gd-acces .d{display:block;font-size:11.5px;color:var(--faint);overflow-wrap:anywhere}
+  .gd-acces .e{font-size:11.5px;color:var(--soft);white-space:nowrap}
+  .gd-acces .e.non{color:var(--warn)}
+  .gd-acts{display:flex;flex-wrap:wrap;gap:8px}
+  .gd-note{font-size:12px;color:var(--faint)}
+  .gd-ev{display:grid;grid-template-columns:64px 70px minmax(0,1fr);gap:10px;align-items:baseline;padding:7px 4px;border-bottom:1px solid var(--line);font-size:13px}
+  .gd-ev time{color:var(--faint);font-variant-numeric:tabular-nums;font-size:11.5px}
+  .gd-ev .qui{font-weight:600;font-size:12px}
+  .gd-ev .quoi{min-width:0;overflow-wrap:anywhere}
+  .gd-ev.refus .quoi,.gd-ev.porte .quoi{color:var(--warn)}
+  .gd-ev.toi .quoi{color:var(--soft);font-style:italic}
+  .gd-cle{display:flex;flex-wrap:wrap;gap:6px 22px;font-size:12px;color:var(--soft);padding-top:12px}
+  @container (max-width:820px){ .gd-milieu{grid-template-columns:minmax(0,1fr)} .gd-cote{border-left:0;border-top:1px solid var(--line)} }
+  /* La demonstration du premier lancement (piste C) : un VRAI essai, montre. */
+  .demo{position:fixed;inset:0;z-index:60;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;padding:24px;text-align:center}
+  .demo .piste{position:relative;width:min(420px,100%);height:64px}
+  .demo .borne{position:absolute;top:12px;width:92px;height:40px;border:1px solid var(--line);border-radius:12px;display:grid;place-items:center;font-size:13px;background:var(--card)}
+  .demo .borne.g{left:0} .demo .borne.d{right:0;color:var(--faint)}
+  .demo .mur{position:absolute;left:58%;top:0;bottom:0;width:2px;background:var(--ink);border-radius:2px}
+  .demo .mur span{position:absolute;top:-20px;left:-30px;width:62px;font-size:11px;color:var(--soft)}
+  .demo .paquet{position:absolute;top:27px;left:98px;width:10px;height:10px;border-radius:50%;background:var(--ink);opacity:0}
+  .demo .paquet.part{opacity:1;left:calc(58% - 12px);transition:left .9s cubic-bezier(.5,0,.9,.6),opacity .2s}
+  .demo .paquet.rebond{opacity:0;left:calc(58% - 44px);transition:left .35s ease-out,opacity .35s .15s}
+  .demo .paquet.passe{opacity:1;left:calc(100% - 100px);background:var(--warn);transition:left 1.2s linear}
+  .demo .dt{font-size:21px;max-width:32ch;min-height:2.7em}
+  .demo .dd{font-size:13px;color:var(--soft);max-width:48ch;min-height:3em}
+  @media (prefers-reduced-motion:reduce){ .demo .paquet{transition:none!important} }
   .me .s.brise i{background:var(--warn)}
   .me .gear{margin-left:auto;color:var(--faint);width:28px;height:28px;display:grid;place-items:center;border-radius:7px}
   .me:hover .gear{color:var(--ink);background:var(--hover)}
@@ -351,9 +433,16 @@
 </style>
 </head>
 <body>
+  <div class="demo" id="demo" hidden>
+    <div class="piste"><div class="borne g">Waly</div><div class="borne d">Internet</div><div class="mur"><span>Windows</span></div><div class="paquet" id="demopq"></div></div>
+    <div class="dt serif" id="demot"></div>
+    <div class="dd" id="demod"></div>
+    <button class="bt" id="demook" hidden>Compris</button>
+  </div>
   <div class="titlebar" data-tauri-drag-region>
     <span class="brand"><canvas id="mark" width="18" height="18"></canvas> Waly</span>
     <span class="g" data-tauri-drag-region></span>
+    <button class="gardebtn" id="gardebtn" title="La Garde : ce que Waly touche, ce qui sort, ce que tu coupes"><i></i><span>Garde</span></button>
     <button class="wbtn" id="min" title="Réduire">—</button>
     <button class="wbtn" id="max" title="Agrandir">▢</button>
     <button class="wbtn close" id="close" title="Fermer">✕</button>
@@ -377,10 +466,10 @@
       </div>
       <div class="me" id="me" title="Paramètres">
         <div class="av">W</div>
-        <div class="mw0"><div class="n">Waly local</div><div class="s" id="rdlabel"><i></i><span id="rdtext">rien ne sort</span></div></div>
+        <div class="mw0"><div class="n" id="rdnom">Waly</div><button class="s etat" id="rdlabel" title="Ouvrir la Garde"><i></i><span id="rdtext">scellé</span></button></div>
         <span class="gear"><svg class="i" viewBox="0 0 16 16"><circle cx="8" cy="8" r="2.2"/><path d="M8 1.8v1.8M8 12.4v1.8M1.8 8h1.8M12.4 8h1.8M3.6 3.6l1.3 1.3M11.1 11.1l1.3 1.3M3.6 12.4l1.3-1.3M11.1 4.9l1.3-1.3"/></svg></span>
       </div>
-    </aside>
+        </aside>
 
     <main class="main">
       <!-- conversation / mission / accueil -->
@@ -476,7 +565,7 @@
   </div>
 
   <div class="callpage" id="callpage" hidden>
-    <div class="calltop"><span id="calltitle">Appel</span><span class="g"></span><span class="chip">Local · rien ne sort</span></div>
+    <div class="calltop"><span id="calltitle">Appel</span><span class="g"></span><span class="chip" id="callchip">Local</span></div>
     <div class="callstage">
       <canvas id="calleclipse" width="200" height="200"></canvas>
       <div class="callstate" id="callstate"></div>
@@ -1233,7 +1322,7 @@
   function markNav(key){ $$('.side .ni[data-page]').forEach(n=>n.classList.toggle('on', n.dataset.page===key)); }
   function closePage(){
     if(!pageOpen) return;
-    pageOpen=null; markNav(null);
+    pageOpen=null; markNav(null); $('gardebtn').classList.remove('on'); arreterGarde();
     $('v-page').hidden=true; $('v-settings').hidden=true; $('v-chat').hidden=false;
   }
   function showPage(key){
@@ -1245,8 +1334,10 @@
     const [key, sub]=spec.split(':');
     if(key==='parametres') return openSettings(sub||'general');
     showPage(key);
-    ({personnaliser:()=>renderPersonnaliser(sub||'competences'), projets:()=>renderProjets(sub), creations:renderCreations, programme:renderProgramme}[key])();
+    ({personnaliser:()=>renderPersonnaliser(sub||'competences'), projets:()=>renderProjets(sub), creations:renderCreations, programme:renderProgramme, garde:renderGarde}[key])();
+    $('gardebtn').classList.toggle('on', key==='garde');
   }
+  on('gardebtn', ()=>{ if(pageOpen==='garde') closePage(); else openPage('garde'); });
   $$('.side .ni[data-page]').forEach(n=>n.addEventListener('click', ()=>{ if(pageOpen===n.dataset.page) closePage(); else openPage(n.dataset.page); }));
   on('me', ()=>{ if(pageOpen==='parametres') closePage(); else openSettings('general'); });
   const H=(t)=>'<div class="ptitle"><h2 class="serif">'+t+'</h2><span class="g"></span></div>';
@@ -1774,42 +1865,54 @@
   }
   async function paneVie(box){
     let e={}; try{ e=await invoke('core_sceau_etat'); }catch(_){}
-    const ok=e.disponible && e.privilegie;
+    const perce=e.prouve==='ouverte';
+    const ok=sceauTenu(e);
     let mcpA=[]; try{ mcpA=await invoke('core_mcp_actifs')||[]; }catch(_){}
     box.innerHTML='<h3>Vie privée</h3><div class="sgroup">'+
-      srow('Réseau scellé', ok?'<span class="ok">Tenu</span> : toute sortie réseau de Waly est bloquée par Windows et inscrite au journal.':'<span class="warn">Non tenu</span> : '+(e.disponible?'le service de scellé tourne sans privilège — réinstalle le service.':'le service de scellé n’est pas installé — exécute install-eleve.ps1 en administrateur.'), '<button class="bt small" id="sctest">Vérifier maintenant</button>')+
+      srow('Scellé de Waly', ok?'<span class="ok">Vérifié</span>'+(e.prouve==='bloquee'?' : dernier essai '+ageTxt(e.age)+', bloqué par Windows.':'.')+' Toute tentative de sortie de Waly est refusée par Windows et inscrite au journal.':'<span class="warn">Non tenu</span> : '+(perce?'un essai de sortie depuis Waly n’a pas été bloqué — ce programme n’est pas couvert par le scellé. Relance Waly depuis son raccourci, ou réinstalle-le.':e.disponible?'le service de scellé tourne sans privilège — réinstalle Waly.':'le service de scellé n’est pas installé — réinstalle Waly.'), '<button class="bt small" id="sctest">Refaire l’essai</button> <button class="bt small" id="scdemo">Revoir la démonstration</button>')+
       srow('Hors du scellé', mcpA.length ? mcpA.map(s=>esc(s.nom)).join(', ')+' — connecteurs que tu as déclarés' : 'rien','')+
-      srow('Sorties que tu as ouvertes', (cerveau.exterieurs.length ? cerveau.exterieurs.map(x=>esc(x.modele)+' → '+esc(x.hote)).join(', ')+(cerveau.mode==='local'?' — déclarés, hors service : rien ne sort':' — '+(cerveau.mode==='auto'?'routeur actif':'en service'))+'. ' : 'Aucun modèle extérieur. ')+'Partage entre deux Waly : voir Partage et contacts. Passerelles de messagerie : voir Personnaliser › Connecteurs. Téléchargements de modèles : par Ollama, seulement quand tu le demandes. Ces sorties passent par un programme séparé ; Waly, lui, reste scellé.','')+
-      '</div><div class="fine" id="scout"></div><h4>Journal du scellé</h4><div class="sgroup" id="scjournal"></div>'+
-      '<h4>Sceller un autre agent</h4>'+
-      '<div class="hint">'+ICON.shield+'<span>Le huis clos peut fermer le réseau de <b>n’importe quel programme</b> de cette machine — un autre agent IA, par exemple — pas seulement Waly. Chaque scellé demande une élévation (Windows te demandera l’autorisation).</span></div>'+
+      srow('Sorties que tu as ouvertes', (cerveau.exterieurs.length ? cerveau.exterieurs.map(x=>esc(x.modele)+' → '+esc(x.hote)).join(', ')+(cerveau.mode==='local'?' — déclarés, hors service':' — '+(cerveau.mode==='auto'?'routeur actif':'en service'))+'. ' : 'Aucun modèle extérieur. ')+'Partage entre deux Waly : voir Partage et contacts. Passerelles de messagerie : voir Personnaliser › Connecteurs. Téléchargements de modèles : par Ollama, seulement quand tu le demandes. Ces sorties passent par un programme séparé ; Waly, lui, reste scellé.','')+
+      '</div><div class="fine" id="scout"></div><h4>Journal</h4><div class="sgroup" id="scjournal"></div>'+
+      '<h4>Autres agents sur cette machine</h4>'+
+      '<div class="hint">'+ICON.shield+'<span>Waly peut fermer l’accès à internet d’un <b>autre programme</b> : un agent IA, par exemple. Il bloque ses sorties et note chaque tentative. Il ne surveille pas ses fichiers. Windows demande ton accord à chaque fois.</span></div>'+
       '<div class="sgroup" id="scagents"></div>'+
       '<div class="scact"><button class="bt small" id="scadd">+ Choisir un programme…</button><span class="fine" id="scaddout"></span></div>';
     async function journal(){
       let l=[]; try{ l=await invoke('core_sceau_journal')||[]; }catch(_){}
-      const G={pose:'Scellé',levee:'Levé',bloque:'Sortie bloquée',sortie:'Sortie ouverte'};
+      const G=G_SCEAU;
       $('scjournal').innerHTML = l.length ? l.map(x=>srow(esc((G[x.genre]||x.genre)+' — '+(x.detail||'')), esc((x.at||'').replace('T',' ').slice(0,19)))).join('') : srow('Aucune tentative de sortie enregistrée','le scellé veille en silence');
     }
     journal();
+    $('scdemo').onclick=()=>demoPreuve(true);
     $('sctest').onclick=async()=>{ $('scout').textContent='vérification…'; try{ const r=await invoke('core_sceau_tester'); $('scout').innerHTML=r.bloque?'<span class="ok">✓ '+esc(r.detail)+'</span>':'<span class="warn">⚠ '+esc(r.detail)+'</span>'; }catch(err){ $('scout').textContent='échec : '+err; } journal(); };
     async function agents(){
-      let a=[]; try{ a=await invoke('core_agents')||[]; }catch(_){}
-      if(!a.length){ $('scagents').innerHTML=srow('Aucun autre agent scellé','choisis un programme ci-dessous'); return; }
-      $('scagents').innerHTML = a.map((x,i)=>srow(
-        esc(x.nom)+' '+(x.actif?'<span class="ok">scellé</span>':'<span class="warn">levé</span>'),
-        esc(x.exe),
-        '<button class="bt small" data-j="'+i+'">Journal</button> <button class="bt small" data-u="'+i+'">Lever</button>'
-      )).join('');
+      let a=[]; try{ a=await invoke('core_agents_trouves')||[]; }catch(_){}
+      if(!a.length){ $('scagents').innerHTML=srow('Aucun agent connu ne tourne en ce moment','Lance-le puis rouvre cette page, ou choisis son programme ci-dessous.'); return; }
+      const dit=(m)=>{ $('scaddout').innerHTML=m; };
+      $('scagents').innerHTML = a.map((x,i)=>{
+        const etat = x.scelle ? '<span class="ok">scellé</span>' : '<span class="fine">non scellé</span>';
+        let d = esc(x.exe)+(x.en_cours?'':' · arrêté');
+        if(x.partage) d += '<br><span class="warn">Moteur partagé : le sceller coupe aussi '+(x.autres?x.autres+' autre'+(x.autres>1?'s':'')+' programme'+(x.autres>1?'s':'')+' en cours':'tout logiciel')+' qui l’utilise'+(x.autres>1?'nt':'')+'.</span>';
+        if(x.scelle) d += '<br>'+(x.bloquees ? x.bloquees+' sortie'+(x.bloquees>1?'s':'')+' bloquée'+(x.bloquees>1?'s':'')+'. Dernière : '+esc(x.derniere) : 'Aucune tentative de sortie depuis le scellé.');
+        const b = x.scelle ? '<button class="bt small" data-j="'+i+'">Journal</button> <button class="bt small" data-u="'+i+'">Lever</button>' : '<button class="bt small" data-s="'+i+'">Sceller</button>';
+        return srow(esc(x.nom)+' '+etat, d, b);
+      }).join('');
+      $('scagents').querySelectorAll('[data-s]').forEach(b=>b.onclick=async()=>{
+        const x=a[+b.dataset.s];
+        if(x.partage && !(await dialog({titre:'Sceller '+x.nom+' ?', texte:x.nom+' tourne sur un moteur partagé ('+x.exe+'). Le sceller coupe internet à tous les logiciels qui utilisent ce moteur, pas seulement à '+x.nom+'.', ok:'Sceller quand même', danger:true}))) return;
+        b.textContent='…'; dit('Windows va demander ton accord…');
+        try{ const r=await invoke('core_agent_seal',{exe:x.exe}); dit(r.ok?'<span class="ok">'+esc(x.nom)+' est scellé : il ne peut plus sortir sur internet.</span>':'<span class="warn">'+esc(r.message)+'</span>'); }catch(err){ dit('échec : '+esc(err)); }
+        agents(); journal();
+      });
       $('scagents').querySelectorAll('[data-u]').forEach(b=>b.onclick=async()=>{
         const x=a[+b.dataset.u]; b.textContent='…';
-        try{ const r=await invoke('core_agent_unseal',{exe:x.exe}); $('scaddout').innerHTML=r.ok?'<span class="ok">'+esc(r.message)+'</span>':'<span class="warn">'+esc(r.message)+'</span>'; }catch(err){ $('scaddout').textContent='échec : '+err; }
+        try{ const r=await invoke('core_agent_unseal',{exe:x.exe}); dit(r.ok?'<span class="ok">'+esc(x.nom)+' peut de nouveau sortir sur internet.</span>':'<span class="warn">'+esc(r.message)+'</span>'); }catch(err){ dit('échec : '+esc(err)); }
         agents();
       });
       $('scagents').querySelectorAll('[data-j]').forEach(b=>b.onclick=async()=>{
         const x=a[+b.dataset.j];
         let l=[]; try{ l=await invoke('core_agent_journal',{exe:x.exe})||[]; }catch(_){}
-        const G={pose:'Scellé',levee:'Levé',bloque:'Sortie bloquée',sortie:'Sortie ouverte'};
-        $('scaddout').innerHTML = l.length ? '<b>'+esc(x.nom)+'</b> — '+l.slice(0,6).map(y=>esc((G[y.genre]||y.genre)+' '+(y.detail||''))).join(' · ') : '<b>'+esc(x.nom)+'</b> — aucune sortie bloquée journalisée';
+        dit(l.length ? '<b>'+esc(x.nom)+'</b> — '+l.slice(0,6).map(y=>esc((G_SCEAU[y.genre]||y.genre)+' '+(y.detail||''))).join(' · ') : '<b>'+esc(x.nom)+'</b> — aucune sortie bloquée pour l’instant');
       });
     }
     agents();
@@ -1823,18 +1926,358 @@
     };
   }
   function paneApropos(box){
-    box.innerHTML='<h3>À propos</h3><div class="sgroup">'+srow('Waly','Open source, licence MIT. Aucun compte, aucune télémétrie. Tout tourne sur cette machine.','')+'</div>';
+    box.innerHTML='<h3>À propos</h3><div class="sgroup">'+srow('Waly','Un système d’intelligence personnelle, sous ta garde : tu vois ce que l’IA touche, tu coupes quand tu veux. Local et scellé par défaut ; ce qui sort, c’est toi qui l’ouvres.','')+srow('Licence','Open source, licence MIT. Aucun compte, aucune télémétrie.','')+'</div>';
   }
 
-  async function refreshSceau(){
-    let e={}; try{ e=await invoke('core_sceau_etat'); }catch(_){}
-    const ok=e.disponible && e.privilegie;
-    $('rdlabel').classList.toggle('brise', !ok);
+  const G_SCEAU={pose:'Scellé',levee:'Levé',bloque:'Sortie bloquée',sortie:'Sortie ouverte'};
+  const ageTxt=(s)=> s==null ? '' : s<5 ? 'à l’instant' : s<90 ? 'il y a '+s+' s' : 'il y a '+Math.round(s/60)+' min';
+  const sceauTenu=(e)=> !!(e.disponible && e.privilegie && e.prouve!=='ouverte');
+  async function sortiesOuvertes(){
     const x = cerveau.mode!=='local' ? extActif() : null;
     let ps=[]; try{ ps=((await invoke('core_passerelles'))||{}).passerelles||[]; }catch(_){}
     let pa=null; try{ pa=await invoke('core_partage'); }catch(_){}
-    const sorties=[x?x.hote:null, ps.length?'Telegram':null, pa&&pa.relais?'relais de partage':null].filter(Boolean);
-    $('rdtext').textContent = !ok ? 'réseau non scellé — réparer' : (sorties.length ? 'Scellé · sortie ouverte : '+sorties.join(', ') : 'Local · rien ne sort');
+    return [x?x.hote:null, ps.length?'Telegram':null, pa&&pa.relais?'relais de partage':null].filter(Boolean);
+  }
+  async function refreshSceau(){
+    let e={}; try{ e=await invoke('core_sceau_etat'); }catch(_){}
+    const ok=sceauTenu(e);
+    $('rdlabel').classList.toggle('brise', !ok);
+    const sorties=await sortiesOuvertes();
+    $('rdtext').textContent = !ok ? 'réseau non scellé — réparer' : (sorties.length ? 'Scellé · sortie ouverte : '+sorties.join(', ') : (e.prouve==='bloquee' ? 'Scellé · vérifié' : 'Scellé'));
+    // « Waly local » tant que c'est un modele de la machine qui repond ; « Waly »
+    // des qu'un modele en ligne peut repondre (des choses sortent alors).
+    const enLocal = cerveau.mode==='local';
+    $('rdnom').textContent = enLocal ? 'Waly local' : 'Waly';
+    $('callchip').textContent = enLocal ? 'Local' : 'Modèle en ligne';
+  }
+
+  on('rdlabel', e=>{ e.stopPropagation(); closeMenus(); openPage('garde'); });
+
+  // ── la Garde : voir ce que Waly touche, couper, rendre ──────────────────
+  // Un lien PLEIN est tenu par Waly : le couper est reel et immediat. Aucun
+  // lien n'est dessine s'il n'est pas vrai (les autres agents n'ont que leur
+  // lien vers internet, le seul que Waly tient pour eux aujourd'hui).
+  const SVGNS='http://www.w3.org/2000/svg';
+  const svgEl=(n,at,txt)=>{ const e=document.createElementNS(SVGNS,n); for(const k in at) e.setAttribute(k,at[k]); if(txt!=null) e.textContent=txt; return e; };
+  let gd=null, gdChoisi='Waly', gdPoll=null, gdVu=null, gdPos={}, gdFilTout=false;
+  function arreterGarde(){ if(gdPoll){ clearInterval(gdPoll); gdPoll=null; } }
+  const gdDire=(html,non)=>{ const v=$('gdvoix'); if(!v) return; v.innerHTML=html; v.classList.toggle('non', !!non); };
+  async function gdCharger(){ try{ gd=await invoke('core_garde'); }catch(e){ gd=null; } return gd; }
+  async function gdSorties(){ try{ return await sortiesOuvertes(); }catch(e){ return []; } }
+
+  async function gdCouper(cle, nom, permettre){
+    try{ await invoke('core_garde_acces',{cle, permis:permettre}); }catch(e){ gdDire('⚠ '+esc(e), true); return; }
+    if(!permettre){   // une session en cours sur cette ressource s'arrete tout de suite
+      if(cle==='micro'){ if(voixActif) await stopVoix(); if(appelActif) await stopAppel(); if(ecranActif) await stopEcran(); try{ await invoke('core_dictee_annuler'); }catch(e){} }
+      if(cle==='camera' && appelActif) await stopAppel();
+      if(cle==='ecran' && ecranActif) await stopEcran();
+    }
+    gdDire(permettre ? 'Waly peut de nouveau toucher à <b>'+esc(nom)+'</b>.' : 'Waly ne peut plus toucher à <b>'+esc(nom)+'</b>. Ses tentatives seront refusées et notées.');
+    await gdCharger(); gdDessiner();
+  }
+  async function gdToutCouper(permettre){
+    for(const a of gd.acces){ if(a.permis!==permettre){ try{ await invoke('core_garde_acces',{cle:a.cle, permis:permettre}); }catch(e){} } }
+    if(!permettre){ if(voixActif) await stopVoix(); if(appelActif) await stopAppel(); if(ecranActif) await stopEcran(); try{ await invoke('core_dictee_annuler'); }catch(e){} }
+    gdDire(permettre ? 'Waly a retrouvé tous ses accès.' : 'Waly ne touche plus à rien sur cette machine : ni fichiers, ni mémoire, ni écran, ni caméra, ni micro. Il peut encore te répondre.');
+    await gdCharger(); gdDessiner();
+  }
+  async function gdSceller(x){
+    if(x.scelle){
+      gdDire('Windows va demander ton accord…');
+      try{ const r=await invoke('core_agent_unseal',{exe:x.exe}); gdDire(r.ok ? '<b>'+esc(x.nom)+'</b> peut de nouveau sortir sur internet.' : '⚠ '+esc(r.message), true); }catch(e){ gdDire('⚠ '+esc(e), true); }
+    } else {
+      if(x.partage && !(await dialog({titre:'Couper internet à '+x.nom+' ?', texte:x.nom+' tourne sur un moteur partagé ('+x.exe+'). Lui couper internet le coupe aussi à '+(x.autres?x.autres+' autre(s) programme(s) en cours':'tout logiciel')+' qui utilise ce moteur.', ok:'Couper quand même', danger:true}))) return;
+      gdDire('Windows va demander ton accord…');
+      try{ const r=await invoke('core_agent_seal',{exe:x.exe}); gdDire(r.ok ? '<b>'+esc(x.nom)+'</b> ne peut plus sortir sur internet. Ses tentatives seront notées ici.' : '⚠ '+esc(r.message), !r.ok); }catch(e){ gdDire('⚠ '+esc(e), true); }
+    }
+    await gdCharger(); gdDessiner();
+  }
+
+  async function gdFiger(x){
+    if(x.fige){
+      try{ await invoke('core_agent_relancer',{nom:x.nom, exe:x.exe}); gdDire('<b>'+esc(x.nom)+'</b> tourne de nouveau.'); }catch(e){ gdDire('⚠ '+esc(e), true); }
+    } else {
+      if(!(await dialog({titre:'Tout couper à '+x.nom+' ?', texte:x.nom+' sera figé : il ne lira plus rien, n’écrira plus rien et ne sortira plus, jusqu’à ce que tu le relances ici. Rien n’est perdu. Si tu fermes Waly, il repart tout seul.', ok:'Tout couper', danger:true}))) return;
+      try{ const r=await invoke('core_agent_figer',{nom:x.nom, exe:x.exe}); gdDire(r.ok ? '<b>'+esc(x.nom)+'</b> est figé. Il ne touche plus à rien sur cette machine.' : '⚠ '+esc(r.message), !r.ok); }catch(e){ gdDire('⚠ '+esc(e), true); }
+    }
+    await gdCharger(); gdDessiner();
+  }
+
+  // L'enclos : un compte Windows a part. Un agent qu'on y met ne voit de tes
+  // dossiers que ceux que tu lui donnes. Chaque reglage est suivi d'un essai.
+  const gdCourt=(c)=>{ const bref=(x)=>x.length>26 ? x.slice(0,24)+'…' : x, m=String(c).split('\\'); const fin=m.slice(-2).join('\\'); return m.length>3 ? m[0]+'\\…\\'+(fin.length>30 ? bref(m[m.length-1]) : fin) : m.map(bref).join('\\'); };
+  const gdDroit={lecture:'lecture', ecriture:'écriture', coupe:'coupé'};
+  const gdProg=(exe)=>{ const m=String(exe).split('\\'), n=m.length, bref=(x)=>x.length>30 ? x.slice(0,28)+'…' : x;
+    return '<div class="gd-note" data-exe="'+esc(exe)+'" title="'+esc(exe)+'">'+esc(n>3 ? m[0]+'\\…\\'+bref(m[n-2])+'\\'+m[n-1] : exe)+'</div>'; };
+  async function gdEnclosMettre(x){
+    const e=gd.enclos||{};
+    const texte=x.nom+' sera fermé, puis relancé sous un compte Windows à part. Là, c’est Windows qui lui refuse ton dossier personnel (documents, bureau, clés), tant que tu ne lui donnes pas un dossier. Il repart sans ses réglages ni sa connexion : ils sont dans ton dossier personnel.'
+      +(x.partage?' Seul cet agent est relancé, pas les autres programmes du même moteur.':'')
+      +(e.pret?'':' Windows va demander ton accord une fois, pour créer ce compte.');
+    if(!(await dialog({titre:'Mettre '+x.nom+' dans l’enclos ?', texte, ok:'Mettre dans l’enclos'}))) return;
+    gdDire(e.pret ? 'Relance de '+esc(x.nom)+' dans l’enclos…' : 'Windows va demander ton accord…');
+    let r=null; try{ r=await invoke('core_enclos_mettre',{nom:x.nom, exe:x.exe}); }catch(err){ r={ok:false, message:String(err)}; }
+    gdDire(r.ok ? '<b>'+esc(x.nom)+'</b> tourne dans l’enclos. Ton dossier personnel lui est fermé.'+((r.donnes||[]).length ? ' Pour qu’il démarre, Waly lui a donné en lecture : '+r.donnes.map(esc).join(', ')+'.' : '') : '⚠ '+esc(r.message), !r.ok);
+    await gdCharger(); gdDessiner(); gdFil();
+  }
+  async function gdEnclosDossier(droit, chemin){
+    let r=null; try{ r=await invoke('core_enclos_dossier',{chemin:chemin||null, droit}); }catch(err){ r={ok:false, message:String(err)}; }
+    if(r.annule) return;
+    const c='<b>'+esc(r.chemin||chemin||'')+'</b>';
+    if(!r.ok) gdDire('⚠ '+esc(r.message), true);
+    else if(droit==='reprendre') gdDire('Repris : '+c+'. L’enclos n’y a plus de droit particulier.');
+    else if(r.conforme===false) gdDire('⚠ Réglé sur '+gdDroit[droit]+', mais l’essai dit autre chose : dans '+c+', l’enclos '+(r.lit?'lit':'ne lit pas')+' et '+(r.ecrit?'écrit':'n’écrit pas')+'.', true);
+    else gdDire((droit==='coupe' ? 'L’enclos ne peut plus ouvrir '+c+'.' : droit==='ecriture' ? 'L’enclos peut lire et modifier '+c+'.' : 'L’enclos peut lire '+c+', pas le modifier.')+(r.conforme ? ' Essai à l’instant, sous son compte : confirmé.' : ' L’essai n’a pas pu se faire.'));
+    await gdCharger(); gdDessiner(); gdFil();
+  }
+  async function gdEnclosToutReprendre(){
+    const donnes=((gd.enclos||{}).dossiers||[]).filter(d=>d.droit!=='coupe' && !d.pourquoi);
+    if(!donnes.length){ gdEnclosDossier('lecture'); return; }
+    if(!(await dialog({titre:'Reprendre tous les dossiers donnés ?', texte:'L’enclos perdra l’accès à : '+donnes.map(d=>d.chemin).join(', ')+'. Les dossiers nécessaires au démarrage des agents restent.', ok:'Tout reprendre', danger:true}))) return;
+    for(const d of donnes){ try{ await invoke('core_enclos_dossier',{chemin:d.chemin, droit:'reprendre'}); }catch(_){} }
+    gdDire('Tous les dossiers donnés sont repris. L’enclos ne voit plus rien de ce que tu lui avais ouvert.');
+    await gdCharger(); gdDessiner(); gdFil();
+  }
+  async function gdEnclosEssai(){
+    gdDire('Essais en cours, sous le compte de l’enclos…');
+    let r=null; try{ r=await invoke('core_enclos_essai'); }catch(err){ r={ok:false, message:String(err)}; }
+    await gdCharger(); gdDessiner();
+    if(!r.ok){ gdDire('⚠ '+esc(r.message), true); return; }
+    const faux=((gd.enclos||{}).dossiers||[]).filter(d=>d.conforme===false);
+    gdDire(!r.profil_invisible ? '⚠ L’enclos a pu lire ton dossier personnel. Quelque chose le lui ouvre : ne lui confie rien.' : faux.length ? '⚠ Ton dossier personnel lui est fermé, mais '+faux.length+' réglage(s) ne tien(nen)t pas : '+faux.map(d=>esc(d.chemin)).join(', ')+'.' : 'Essais à l’instant : ton dossier personnel lui est <b>fermé</b>, et chaque réglage tient.', !r.profil_invisible || faux.length>0);
+  }
+  async function gdEnclosArret(x, oublier){
+    if(oublier && !(await dialog({titre:'Sortir '+x.nom+' de l’enclos ?', texte:x.nom+' sera arrêté. Relancé par toi comme d’habitude, il retrouvera tous tes dossiers.', ok:'Sortir de l’enclos', danger:true}))) return;
+    let r=null; try{ r = (!oublier && !x.en_cours) ? await invoke('core_enclos_relancer',{exe:x.exe}) : await invoke('core_enclos_arreter',{exe:x.exe, oublier:!!oublier}); }catch(err){ r={ok:false, message:String(err)}; }
+    gdDire(!r.ok ? '⚠ '+esc(r.message) : oublier ? '<b>'+esc(x.nom)+'</b> est sorti de l’enclos et arrêté.' : x.en_cours ? '<b>'+esc(x.nom)+'</b> est arrêté ('+r.arretes+' processus). Il reste dans l’enclos.' : '<b>'+esc(x.nom)+'</b> est relancé dans l’enclos.', !r.ok);
+    if(oublier) gdChoisi='Waly';
+    await gdCharger(); gdDessiner(); gdFil();
+  }
+  function gdPanneauEnclos(p, x){
+    const e=gd.enclos||{dossiers:[]};
+    const etat=(d)=> gdDroit[d.droit]+(d.conforme===true?' · vérifié':d.conforme===false?' · NON tenu':'');
+    const ferme = e.profil_invisible===true ? 'Dernier essai '+esc((e.profil_essaye||'').slice(11,16))+' : ton dossier personnel lui est fermé.' : e.profil_invisible===false ? '⚠ Au dernier essai, l’enclos a pu lire ton dossier personnel.' : 'Pas encore essayé.';
+    p.innerHTML='<div><div class="fine">Agent choisi</div><h3 class="serif">'+esc(x.nom)+'</h3></div>'+
+      '<span class="gd-pill '+(e.profil_invisible===false?'non':'ok')+'">Dans l’enclos'+(x.en_cours?'':' · arrêté')+'</span>'+
+      gdProg(x.exe)+
+      '<div class="gd-note">Il tourne sous un compte Windows à part ('+esc(e.compte||'')+'). '+ferme+'</div>'+
+      (x.hors_enclos?'<div class="gd-note warn">'+x.hors_enclos+' processus de '+esc(x.nom)+' tourne(nt) HORS de l’enclos (lancés à la main) : eux voient tes dossiers.</div>':'')+
+      '<div class="gd-soustitre">Ce que l’enclos voit</div>'+
+      '<div class="gd-acces">'+(e.dossiers.length ? e.dossiers.map((d,i)=>'<button type="button" data-i="'+i+'" title="'+esc(d.chemin)+'"><span>'+esc(gdCourt(d.chemin))+'<span class="d">'+esc(d.pourquoi || (d.droit==='coupe'?'clique pour le rendre':'clique pour le reprendre'))+'</span></span><span class="e'+(d.droit==='coupe'?' non':'')+(d.conforme===false?' doute':'')+'">'+etat(d)+'</span></button>').join('') : '<div class="gd-note">Aucun dossier donné.</div>')+'</div>'+
+      '<div class="gd-acts"><button type="button" class="bt small" id="gdedl">Donner en lecture</button><button type="button" class="bt small" id="gdede">Donner en écriture</button><button type="button" class="bt small" id="gdedc">Couper un dossier</button><button type="button" class="bt small" id="gdees">Refaire l’essai</button></div>'+
+      '<div class="gd-note">L’enclos est commun à tous les agents qu’on y met. Hors de ton dossier personnel, il lit et écrit comme tout compte de la machine : coupe ce que tu veux protéger. '+(x.scelle ? 'Internet : coupé.'+(x.bloquees?' '+x.bloquees+' sortie(s) bloquée(s).':'') : 'Internet : il peut sortir, l’enclos ne règle que les dossiers.')+(x.surveille ? ' Surveillé : '+x.vu_fichiers+' fichier(s) aujourd’hui.' : '')+'</div>'+
+      '<div class="gd-acts"><button type="button" class="bt small" id="gdseal">'+(x.scelle?'Rendre internet':'Couper internet')+'</button><button type="button" class="bt small" id="gdearr">'+(x.en_cours?'Arrêter':'Relancer')+'</button><button type="button" class="bt small" id="gdesor">Sortir de l’enclos</button>'+((gd.regard||{}).mode==='tout'?'':'<button type="button" class="bt small" id="gdsurv">'+(x.surveille?'Ne plus surveiller':'Surveiller')+'</button>')+'</div>';
+    p.querySelectorAll('[data-i]').forEach(b=>b.onclick=()=>{ const d=e.dossiers[+b.dataset.i]; gdEnclosDossier('reprendre', d.chemin); });
+    $('gdedl').onclick=()=>gdEnclosDossier('lecture'); $('gdede').onclick=()=>gdEnclosDossier('ecriture'); $('gdedc').onclick=()=>gdEnclosDossier('coupe');
+    $('gdees').onclick=()=>gdEnclosEssai(); $('gdearr').onclick=()=>gdEnclosArret(x,false); $('gdesor').onclick=()=>gdEnclosArret(x,true);
+  }
+
+  // La surveillance : eteinte par defaut ; un agent, plusieurs, ou toute la machine.
+  async function gdRegard(mode, exes){
+    gdDire(mode==='rien' ? 'Arrêt de la surveillance…' : 'Windows va demander ton accord…');
+    let r=null; try{ r=await invoke('core_regard',{mode, exes:exes||[]}); }catch(e){ r={ok:false, message:String(e)}; }
+    gdDire(r.ok ? (mode==='rien' ? 'La surveillance est éteinte. Ce qui a été noté reste dans le fil.' : mode==='tout' ? 'Waly note maintenant ce que <b>tous les programmes</b> de la machine ouvrent, lancent et contactent. Les chemins seulement, jamais le contenu.' : 'Waly note maintenant ce que cet agent ouvre, lance et contacte.') : '⚠ '+esc(r.message), !r.ok);
+    await gdCharger(); gdDessiner(); gdFil();
+  }
+  function gdBarreRegard(){
+    const z=$('gdregard'); if(!z) return;
+    const g=gd.regard||{mode:'rien',exes:[]};
+    if(g.erreur){ z.innerHTML='<span>Surveillance indisponible : '+esc(g.erreur)+'</span>'; return; }
+    const noms=gd.agents.filter(a=>a.surveille).map(a=>a.nom);
+    z.innerHTML = g.mode==='tout' ? '<span>Surveillance : <b>toute la machine</b></span><button type="button" class="bt small" id="gdroff">Arrêter</button>'
+      : g.mode==='agents' ? '<span>Surveillance : <b>'+esc(noms.join(', ')||g.exes.length+' programme(s)')+'</b></span><button type="button" class="bt small" id="gdrtout">Toute la machine</button><button type="button" class="bt small" id="gdroff">Arrêter</button>'
+      : '<span>Surveillance : <b>éteinte</b>. Waly ne regarde pas ce que font les autres programmes.</span><button type="button" class="bt small" id="gdrtout">Surveiller toute la machine</button>';
+    if($('gdroff')) $('gdroff').onclick=()=>gdRegard('rien');
+    if($('gdrtout')) $('gdrtout').onclick=async()=>{ if(await dialog({titre:'Surveiller toute la machine ?', texte:'Waly notera ce que chaque programme ouvre, écrit, lance et contacte sur internet : le nom des fichiers et les adresses, jamais leur contenu. Tout reste sur cette machine. Tu peux arrêter à tout moment.', ok:'Surveiller'})) gdRegard('tout'); };
+  }
+
+  function gdEntete(sorties){
+    const tenu=sceauTenu(gd.sceau), libres=gd.agents.filter(a=>!a.scelle && a.en_cours && !a.fige);
+    const phrase = !tenu ? 'Waly n’est pas scellé.' : sorties.length ? 'Une porte est ouverte.' : 'Waly est scellé.';
+    const sous = !tenu ? 'Un essai de sortie est passé, ou le service de scellé ne répond pas. Réinstalle Waly.'
+      : sorties.length ? 'Tu as ouvert : '+sorties.join(', ')+'.'
+      : (gd.sceau.prouve==='bloquee' ? 'Dernier essai '+ageTxt(gd.sceau.age)+' : bloqué par Windows.' : 'Le scellé est en place.');
+    $('gdphrase').textContent=phrase;
+    $('gdsous').textContent=sous+(libres.length ? ' '+libres.map(a=>a.nom).join(', ')+' peu'+(libres.length>1?'vent':'t')+' sortir : ce ne sont pas des programmes de Waly.' : '');
+    $('gdc1').textContent=gd.touches; $('gdc2').textContent=gd.refus; $('gdc3').textContent=sorties.length;
+    $('gardebtn').classList.toggle('alerte', !tenu || sorties.length>0);
+    gdBarreRegard();
+  }
+
+  function gdPanneau(sorties){
+    const p=$('gdcote'); if(!p) return;
+    if(gdChoisi==='Waly'){
+      const tenu=sceauTenu(gd.sceau), tout=gd.acces.every(a=>!a.permis);
+      p.innerHTML='<div><div class="fine">Agent choisi</div><h3 class="serif">Waly</h3></div>'+
+        '<span class="gd-pill '+(tenu&&!sorties.length?'ok':'non')+'">'+(!tenu?'Non scellé':sorties.length?'Porte ouverte':'Scellé · vérifié')+'</span>'+
+        '<div class="gd-acces">'+gd.acces.map(a=>'<button type="button" data-cle="'+a.cle+'"><span>'+esc(a.nom)+'<span class="d">'+esc(a.dernier ? a.dernier.replace(/^a /,'') : 'pas encore touché')+'</span></span><span class="e'+(a.permis?'':' non')+'">'+(a.permis?'relié':'coupé')+'</span></button>').join('')+
+        '<button type="button" data-net="1"><span>Internet<span class="d">'+(sorties.length?esc(sorties.join(', ')):'aucune porte ouverte')+'</span></span><span class="e'+(sorties.length?' non':'')+'">'+(sorties.length?'porte ouverte':'fermé')+'</span></button></div>'+
+        '<div class="gd-acts"><button type="button" class="bt small" id="gdtest">Refaire l’essai</button><button type="button" class="bt small" id="gdtout">'+(tout?'Tout rendre':'Tout couper')+'</button></div>';
+      p.querySelectorAll('[data-cle]').forEach(b=>b.onclick=()=>{ const a=gd.acces.find(x=>x.cle===b.dataset.cle); gdCouper(a.cle, a.nom, !a.permis); });
+      p.querySelector('[data-net]').onclick=()=>gdPorte();
+      $('gdtout').onclick=()=>gdToutCouper(tout);
+      $('gdtest').onclick=async()=>{ gdDire('Essai en cours…'); let r=null; try{ r=await invoke('core_sceau_tester'); }catch(e){}
+        gdDire(r&&r.bloque ? 'Essai à l’instant, vers 1.1.1.1 : <b>bloqué par Windows</b>.' : 'Essai à l’instant : la sortie est passée. Waly n’est pas couvert par le scellé.', !(r&&r.bloque));
+        if(r&&r.bloque) gdGrain('Waly','internet',true); await gdCharger(); gdDessiner(); refreshSceau(); };
+      return;
+    }
+    const x=gd.agents.find(a=>a.nom+'|'+a.exe===gdChoisi); if(!x){ gdChoisi='Waly'; return gdPanneau(sorties); }
+    const surveiller=()=>{
+      const actuels=((gd.regard||{}).mode==='agents' ? gd.regard.exes : []).filter(e=>e!==x.exe.toLowerCase());
+      const voulus = x.surveille ? actuels : actuels.concat([x.exe]);
+      gdRegard(voulus.length ? 'agents' : 'rien', voulus);
+    };
+    if(x.enclos){ gdPanneauEnclos(p, x); $('gdseal').onclick=()=>gdSceller(x); if($('gdsurv')) $('gdsurv').onclick=surveiller; return; }
+    p.innerHTML='<div><div class="fine">Agent choisi</div><h3 class="serif">'+esc(x.nom)+'</h3></div>'+
+      '<span class="gd-pill '+(x.fige||x.scelle?'ok':'non')+'">'+(x.fige?'Figé : ne touche plus à rien':x.scelle?'Internet coupé':'Peut sortir sur internet')+(x.en_cours?'':' · arrêté')+'</span>'+
+      gdProg(x.exe)+
+      (x.partage?'<div class="gd-note warn">Moteur partagé : lui couper internet le coupe aussi à '+(x.autres?x.autres+' autre(s) programme(s) en cours':'tout logiciel')+' qui l’utilise.</div>':'')+
+      '<div class="gd-note">'+(x.scelle ? (x.bloquees ? x.bloquees+' sortie(s) bloquée(s). Dernière : '+esc(x.derniere) : 'Aucune tentative de sortie depuis la coupure.') : '')+'</div>'+
+      '<div class="gd-note">'+(x.surveille ? 'Surveillé. Aujourd’hui : '+x.vu_fichiers+' fichier(s), '+x.vu_programmes+' programme(s) lancé(s), '+x.vu_internet+' adresse(s) contactée(s).' : 'Non surveillé : Waly ne regarde pas ce que cet agent touche.')+'</div>'+
+      '<div class="gd-acts"><button type="button" class="bt small" id="gdseal">'+(x.scelle?'Rendre internet':'Couper internet')+'</button>'+(x.en_cours?'<button type="button" class="bt small" id="gdfige">'+(x.fige?'Relancer':'Tout couper')+'</button>':'')+((gd.regard||{}).mode==='tout'?'':'<button type="button" class="bt small" id="gdsurv">'+(x.surveille?'Ne plus surveiller':'Surveiller')+'</button>')+(x.en_cours&&!x.fige?'<button type="button" class="bt small" id="gdenclos">Mettre dans l’enclos</button>':'')+'</div>'+
+      '<div class="gd-note">Fichiers : Waly ne peut pas lui couper un dossier tant qu’il tourne sous ton compte. Dans l’enclos, c’est Windows qui lui refuse tes dossiers.</div>';
+    if($('gdsurv')) $('gdsurv').onclick=surveiller;
+    if($('gdenclos')) $('gdenclos').onclick=()=>gdEnclosMettre(x);
+    $('gdseal').onclick=()=>gdSceller(x);
+    if($('gdfige')) $('gdfige').onclick=()=>gdFiger(x);
+  }
+  function gdPorte(){
+    gdDire('Les portes de Waly s’ouvrent une par une, à ta demande : un modèle en ligne avec ta clé (Réglages › Modèles), ton téléphone (Personnaliser › Connecteurs), l’envoi d’une conversation (Partage). Tu les refermes au même endroit.');
+  }
+
+  function gdDessiner(){
+    const c=$('gdcarte'); if(!c || !gd) return;
+    gdSorties().then(sorties=>{
+      const autres=gd.agents.slice(0,4), ags=[{nom:'Waly', id:'Waly'}].concat(autres.map(a=>({nom:a.nom, id:a.nom+'|'+a.exe, x:a})));
+      const H=Math.max(360, 60+Math.max(ags.length*76, gd.acces.length*62));
+      // Le dessin suit la largeur reelle : le texte garde sa taille.
+      const W=Math.max(520, Math.round(c.clientWidth||720));
+      c.setAttribute('viewBox','0 0 '+W+' '+H); c.textContent=''; gdPos={};
+      const AX=Math.round(W*0.13)+10, RX=Math.round(W*0.5), MUR=W-130, NX=W-58, NY=H/2;
+      const y=(i,n)=>50+(H-70)*(i+0.5)/n;
+      c.append(svgEl('rect',{class:'machine',x:8,y:20,width:MUR-42,height:H-40,rx:18}), svgEl('text',{x:24,y:40,class:'pale'},'Ta machine'));
+      const gI=svgEl('g',{}), gL=svgEl('g',{}), gN=svgEl('g',{}), gG=svgEl('g',{id:'gdgrains'});
+      gd.acces.forEach((a,i)=>{ gdPos['r:'+a.cle]={x:RX, y:y(i,gd.acces.length)}; });
+      gdPos['r:internet']={x:NX-30, y:NY, mur:MUR};
+      ags.forEach((ag,i)=>{
+        const ay=y(i,ags.length); gdPos['a:'+ag.id]={x:AX+30, y:ay};
+        if(ag.id==='Waly'){
+          gd.acces.forEach(a=>{
+            const r=gdPos['r:'+a.cle], mx=(AX+30+r.x)/2, my=(ay+r.y)/2, coupe=!a.permis;
+            gL.append(svgEl('line',{class:'gd-lien'+(coupe?' coupe':''),x1:AX+30,y1:ay,x2:r.x,y2:r.y}));
+            const t=svgEl('line',{class:'gd-touche',x1:AX+30,y1:ay,x2:r.x,y2:r.y}); t.addEventListener('click',()=>gdCouper(a.cle,a.nom,coupe));
+            const p=svgEl('circle',{class:'gd-poignee'+(coupe?' coupe':''),cx:mx,cy:my,r:7}); p.addEventListener('click',()=>gdCouper(a.cle,a.nom,coupe));
+            gL.append(t,p,svgEl('text',{class:'signe',x:mx,y:my+4},coupe?'+':'×'));
+          });
+        }
+        if(ag.x && ag.x.enclos){
+          // Dans l'enclos, le lien vers les fichiers est TENU : plein s'il a
+          // au moins un dossier donne, coupe sinon. La poignee le regle.
+          const r=gdPos['r:fichiers'];
+          if(r){
+            const donnes=((gd.enclos||{}).dossiers||[]).filter(d=>d.droit!=='coupe' && !d.pourquoi).length, coupe=!donnes;
+            const mx=AX+30+(r.x-AX-30)*.38, my=ay+(r.y-ay)*.38, clic=()=>{ gdChoisi=ag.id; gdEnclosToutReprendre(); };
+            gL.append(svgEl('line',{class:'gd-lien'+(coupe?' coupe':''),x1:AX+30,y1:ay,x2:r.x,y2:r.y}));
+            const t=svgEl('line',{class:'gd-touche',x1:AX+30,y1:ay,x2:r.x,y2:r.y}); t.addEventListener('click',clic);
+            const pg=svgEl('circle',{class:'gd-poignee'+(coupe?' coupe':''),cx:mx,cy:my,r:7}); pg.addEventListener('click',clic);
+            gL.append(t,pg,svgEl('text',{class:'signe',x:mx,y:my+4},coupe?'+':'×'));
+          }
+          gN.append(svgEl('circle',{class:'cloture',cx:AX,cy:ay,r:35}));
+        } else if(ag.x && ag.x.surveille && ag.x.vu_fichiers>0 && !ag.x.fige){
+          const r=gdPos['r:fichiers']; if(r) gL.append(svgEl('line',{class:'gd-lien vu',x1:AX+30,y1:ay,x2:r.x,y2:r.y}));
+        }
+        const porte = ag.id==='Waly' ? sorties.length>0 : (!ag.x.scelle && !ag.x.fige);
+        const bx=porte?NX-30:MUR-6, by=porte?NY:ay+(NY-ay)*.78;
+        const d='M'+(AX+30)+','+ay+' C'+(AX+Math.round(W*0.25))+','+(ay-56)+' '+(MUR-Math.round(W*0.2))+','+(by-40)+' '+bx+','+by;
+        gI.append(svgEl('path',{class:'gd-lien'+(porte?' porte':' coupe'),d}));
+        const clic=()=> ag.id==='Waly' ? gdPorte() : gdSceller(ag.x);
+        const px=MUR-34, py=ay+(NY-ay)*.62-24;
+        const p=svgEl('circle',{class:'gd-poignee'+(porte?' porte':' coupe'),cx:px,cy:py,r:7}); p.addEventListener('click',clic);
+        gI.append(p,svgEl('text',{class:'signe',x:px,y:py+4},porte?'×':'+'));
+        const n=svgEl('circle',{class:'noeud'+(ag.id===gdChoisi?' choisi':'')+(ag.x&&ag.x.fige?' fige':''),cx:AX,cy:ay,r:30,tabindex:0,role:'button','aria-label':'Choisir '+ag.nom});
+        const choix=()=>{ gdChoisi=ag.id; gdDessiner(); gdFil(); };
+        n.addEventListener('click',choix); n.addEventListener('keydown',e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); choix(); } });
+        gN.append(n, svgEl('text',{x:AX,y:ay+4,'text-anchor':'middle'}, ag.nom.length>9?ag.nom.slice(0,8)+'…':ag.nom));
+      });
+      gd.acces.forEach(a=>{ const r=gdPos['r:'+a.cle]; gN.append(svgEl('rect',{class:'res',x:r.x,y:r.y-16,width:100,height:32,rx:10}), svgEl('text',{x:r.x+50,y:r.y+4,'text-anchor':'middle'},a.nom)); });
+      c.append(gI,gL,gN,svgEl('line',{class:'mur',x1:MUR,y1:12,x2:MUR,y2:H-12}),svgEl('text',{x:MUR,y:9,'text-anchor':'middle',class:'pale'},'Windows'),
+        svgEl('circle',{class:'net',cx:NX,cy:NY,r:30}),svgEl('text',{x:NX,y:NY+4,'text-anchor':'middle',class:'pale'},'Internet'),gG);
+      gdEntete(sorties); gdPanneau(sorties);
+    });
+  }
+
+  // Un geste traverse le graphe : jusqu'a la ressource, ou il rebondit s'il est refuse.
+  function gdGrain(agentId, cle, refuse){
+    const g=$('gdgrains'), a=gdPos['a:'+agentId], r=gdPos['r:'+cle]; if(!g||!a||!r) return;
+    if(matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const bx = cle==='internet' && refuse ? r.mur-8 : r.x, by = cle==='internet' && refuse ? a.y+(r.y-a.y)*.8 : r.y;
+    const c=svgEl('circle',{class:'gd-grain'+(refuse?' non':''),r:4.5,cx:a.x,cy:a.y}); g.append(c);
+    const va=(x1,y1,x2,y2,ms,fin)=>{ const t0=performance.now(); (function pas(t){ const k=Math.min(1,(t-t0)/ms), e=k<.5?2*k*k:1-Math.pow(-2*k+2,2)/2;
+      c.setAttribute('cx',x1+(x2-x1)*e); c.setAttribute('cy',y1+(y2-y1)*e); (k<1&&c.isConnected)?requestAnimationFrame(pas):fin(); })(t0); };
+    if(refuse){ const mx=cle==='internet'?bx:(a.x+bx)/2, my=cle==='internet'?by:(a.y+by)/2; va(a.x,a.y,mx,my,560,()=>va(mx,my,a.x+(mx-a.x)*.5,a.y+(my-a.y)*.5,300,()=>c.remove())); }
+    else va(a.x,a.y,bx,by,760,()=>c.remove());
+  }
+
+  function gdFil(){
+    const z=$('gdlignes'); if(!z || !gd) return;
+    const choisi = gdChoisi==='Waly' ? null : gd.agents.find(a=>a.nom+'|'+a.exe===gdChoisi);
+    const aDautres = gd.fil.some(x=>x.agent!=='Waly' && x.agent!=='Toi');
+    if(!aDautres) gdFilTout=false;
+    const l = gdFilTout ? gd.fil : gdChoisi==='Waly' ? gd.fil.filter(x=>x.agent==='Waly'||x.agent==='Toi') : gd.fil.filter(x=>choisi && x.agent===choisi.nom);
+    $('gdfiltitre').textContent = gdFilTout ? 'Le fil de toute la machine' : 'Le fil de '+(choisi?choisi.nom:'Waly');
+    const b=$('gdfiltout'); b.hidden=!aDautres; b.textContent=gdFilTout?'Voir un seul agent':'Voir toute la machine';
+    z.innerHTML = l.length ? l.slice(0,60).map(x=>'<div class="gd-ev '+esc(x.genre)+'"><time>'+esc((x.at||'').slice(11,19))+'</time><span class="qui">'+esc(x.agent)+'</span><span class="quoi">'+esc(x.detail)+'</span></div>').join('')
+      : '<div class="gd-note">'+(gdChoisi==='Waly' ? 'Rien pour l’instant. Demande à Waly de lire un fichier ou de se souvenir de quelque chose : chaque geste s’inscrira ici.' : (choisi&&choisi.surveille ? 'Rien vu pour l’instant. Dès que cet agent ouvre un fichier, lance un programme ou contacte une adresse, la ligne apparaît ici.' : choisi&&choisi.enclos ? 'Dans l’enclos, il ne peut ouvrir que ce que tu lui donnes. Pour voir ce qu’il ouvre vraiment, clique « Surveiller ».' : 'Cet agent n’est pas surveillé. Clique « Surveiller » dans le panneau pour voir ce qu’il touche.'))+'</div>';
+  }
+
+  async function renderGarde(){
+    arreterGarde();
+    page.innerHTML='<div class="pw gd">'+
+      '<div class="gd-haut"><div class="gd-grand serif"><span id="gdphrase">…</span><small id="gdsous"></small></div>'+
+        '<div class="gd-compte"><div><b id="gdc1">0</b><span>choses touchées aujourd’hui</span></div><div><b id="gdc2">0</b><span>refus</span></div><div><b id="gdc3">0</b><span>porte ouverte</span></div></div></div>'+
+      '<div class="gd-regard" id="gdregard"></div>'+
+      '<div class="gd-milieu"><div class="gd-zone"><svg class="gd-carte" id="gdcarte" viewBox="0 0 720 380" role="group" aria-label="Graphe des accès de Waly et des autres agents"></svg><div class="gd-voix" id="gdvoix">Clique un lien pour le couper ou le rendre. Clique un agent pour le choisir.</div></div><aside class="gd-cote" id="gdcote"></aside></div>'+
+      '<div class="gd-filtete"><div class="sect" id="gdfiltitre">Le fil</div><button type="button" class="bt small" id="gdfiltout" hidden>Voir toute la machine</button></div><div id="gdlignes"></div>'+
+      '<div class="gd-cle"><span><b>Trait plein</b> : Waly tient ce lien, le couper est immédiat.</span><span><b>Pointillé noir</b> : lien observé chez un autre agent. Pour le couper, mets cet agent dans l’enclos.</span><span><b>Double cercle</b> : agent dans l’enclos, Windows lui refuse tes dossiers.</span><span><b>Pointillé gris</b> : coupé, toute tentative est refusée et notée.</span><span><b>Trait ocre</b> : une sortie ouverte vers internet.</span></div>'+
+      '</div>';
+    if(!(await gdCharger())){ $('gdphrase').textContent='La Garde est indisponible.'; return; }
+    gdVu = gd.fil.length ? gd.fil[0].at+'|'+gd.fil[0].detail : '';
+    gdDessiner(); gdFil();
+    $('gdfiltout').onclick=()=>{ gdFilTout=!gdFilTout; gdFil(); };
+    if(!window.__gdResize){ window.__gdResize=true; let t=null; window.addEventListener('resize',()=>{ clearTimeout(t); t=setTimeout(()=>{ if(pageOpen==='garde') gdDessiner(); },150); }); }
+    gdPoll=setInterval(async()=>{
+      if(pageOpen!=='garde' || !$('gdcarte')){ arreterGarde(); return; }
+      const avant=gdVu; if(!(await gdCharger())) return;
+      const neufs=[]; for(const x of gd.fil){ if(x.at+'|'+x.detail===avant) break; neufs.push(x); }
+      gdVu = gd.fil.length ? gd.fil[0].at+'|'+gd.fil[0].detail : '';
+      if(neufs.length){ gdDessiner(); gdFil(); setTimeout(()=>neufs.slice(0,4).reverse().forEach((x,i)=>setTimeout(()=>{ if(x.agent==='Waly' && x.ressource) gdGrain('Waly', x.ressource, x.genre==='refus'); else { const a=gd.agents.find(y=>y.nom===x.agent); if(a && (x.ressource==='fichiers'||x.ressource==='internet')) gdGrain(a.nom+'|'+a.exe, x.ressource, false); } }, i*260)), 120); }
+    }, 2500);
+  }
+
+  // Au premier lancement, Waly fait l'essai sous les yeux de l'utilisateur.
+  // C'est un VRAI essai (le meme que le bouton) : si la sortie passe, on le dit.
+  async function demoPreuve(force){
+    let vu=null; try{ vu=localStorage.getItem('waly-preuve-vue'); }catch(_){}
+    if(vu && !force) return;
+    let e={}; try{ e=await invoke('core_sceau_etat'); }catch(_){}
+    if(!(e.disponible && e.privilegie) && !force) return;   // sans service, le pied de barre dit deja « reparer »
+    const d=$('demo'), p=$('demopq'), t=$('demot'), dd=$('demod'), b=$('demook');
+    const calme=matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const attendre=(ms)=>new Promise(r=>setTimeout(r, calme?0:ms));
+    p.className='paquet'; b.hidden=true; dd.textContent=''; t.textContent='Waly va essayer de sortir sur internet.'; d.hidden=false;
+    await attendre(1300);
+    const essai=invoke('core_sceau_tester').catch(()=>null);
+    p.classList.add('part'); await attendre(950);
+    const r=await essai;
+    if(r && r.bloque){
+      p.classList.add('rebond'); t.textContent='Windows l’a bloqué.';
+      dd.textContent='C’était un vrai essai, vers 1.1.1.1, inscrit au journal. Pour le refaire, et voir tout ce que Waly touche : ouvre la Garde, en haut de la fenêtre.';
+    } else {
+      p.classList.add('passe'); t.textContent='L’essai est passé : Waly n’est pas scellé.';
+      dd.textContent=(r && r.detail) || 'Le service de scellé ne répond pas. Réinstalle Waly.';
+    }
+    b.hidden=false;
+    b.onclick=()=>{ d.hidden=true; try{ localStorage.setItem('waly-preuve-vue','1'); }catch(_){} refreshSceau(); };
   }
 
   // ── appel (voix / video) — la Maree plein ecran ───────────────────────
@@ -1955,6 +2398,7 @@
     invoke('core_reglages').then(r=>{ styleCourant=r.style||'normal'; marquerStyle(); reflexionOn=!!r.reflexion; marquerReflexion(); }).catch(()=>{});
     await refreshWaits(); refreshSceau(); refreshRappels();
     await majCerveau();
+    demoPreuve(false);
     let vu=null; try{ vu=localStorage.getItem('waly-materiel-vu'); }catch(e){}
     if(!vu){ try{ const r=await invoke('core_materiel'); if(r.premier) openSettings('modeles'); }catch(e){} }
     setInterval(refreshWaits, 5000);

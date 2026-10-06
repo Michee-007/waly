@@ -3,7 +3,7 @@
 
 /// Sel de reroll SAC (piège 3) : un rebuild sans mutation produit le même
 /// hash → même verdict. Incrémenter suffit quand SAC bloque l'exe.
-const SAC_REROLL: u32 = 27;
+const SAC_REROLL: u32 = 35;
 
 fn main() {
     std::hint::black_box(SAC_REROLL);

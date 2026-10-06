@@ -33,8 +33,24 @@ D. **Exits you open, one by one — delivered 2026-10-01**
    router, a Telegram bridge, and conversation sharing between two Waly
    installs through a self-hostable relay. All covered by offline end-to-end
    tests; **field test against real providers pending**. Still to do: seal
-   the gateway process per destination (WFP address/port filters — needs a
-   service update), Linux key vault, Matrix bridge, calls between two Waly.
+   the gateway process per destination (a gateway of our own behind a local
+   allow-list proxy — needs a service update), seal by identity rather than
+   by path, bring Ollama inside the seal (the open problems of
+   `docs/AUDIT-2026-10-02-promesses-rejouees.md`), Linux key vault, Matrix
+   bridge, calls between two Waly.
+
+E. **The Guard — four steps delivered 2026-10-06**
+   (`docs/ADR-2026-10-06-garde-voir-ce-que-les-agents-touchent.md`,
+   `docs/ADR-2026-10-06-garde-l-enclos.md`): one always-visible button, one
+   page. See what Waly touches and cut each access; cut another agent's
+   internet access or freeze it; watch what other programs open, launch and
+   contact; move an agent into the enclosure, a separate Windows account
+   kept out of your folders. This is now the product's identity: *a personal intelligence system, under
+   your watch* (`docs/ADR-2026-10-06-identite-l-intelligence-sous-ta-garde.md`).
+   **Field test on the installed app pending.** Still to do: filter the
+   network by the enclosure account (it would cover child programs — open
+   problem A), one account per agent, hand the enclosure account removal to
+   the uninstaller, a Linux equivalent.
 
 ## Before wide publication
 

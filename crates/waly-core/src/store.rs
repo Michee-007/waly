@@ -48,6 +48,9 @@ pub fn open(path: &str) -> rusqlite::Result<Connection> {
 }
 
 fn migrate(conn: &Connection) -> rusqlite::Result<()> {
+    // La Garde : registre de ce que Waly touche (voir garde.rs).
+    crate::garde::migrer(conn)?;
+    crate::enclos::migrer(conn)?;
     conn.execute_batch(
         "CREATE TABLE IF NOT EXISTS user_memory (
            key        TEXT PRIMARY KEY,

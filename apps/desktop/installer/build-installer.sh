@@ -31,6 +31,7 @@ NSISDIR="$HOME/nsis-local/usr/share/nsis" "$HOME/nsis-local/usr/bin/makensis" \
   -DEXE_PATH="$EXE" \
   -DLOADER_PATH="$LOADER" \
   -DSVC_PATH="$SVC" \
+  -DSAC_SEL="${SAC_SEL:-3}" \
   -DICON_PATH="$REPO/apps/desktop/src-tauri/icons/icon.ico" \
   -DOUT_PATH="$OUT" \
   "$REPO/apps/desktop/installer/installer.nsi"

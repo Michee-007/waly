@@ -2,6 +2,7 @@
 //! Voir docs/RFC-2026-07-03-knowledge-navigator-reconstruction.md (R2)
 //! et docs/PLAN-2026-07-05-R2-waly-core.md (chantiers).
 
+pub mod agents_machine;
 pub mod apercu;
 pub mod chat;
 pub mod chemins;
@@ -10,8 +11,10 @@ pub mod competences;
 pub mod config;
 pub mod documents;
 pub mod embed;
+pub mod enclos;
 pub mod exterieur;
 pub mod fichiers;
+pub mod garde;
 pub mod llm;
 pub mod mains_ecran;
 pub mod materiel;

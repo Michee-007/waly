@@ -39,3 +39,18 @@ dossier sont des modules ES (`import`).
 `e2e-partage.js` demande DEUX instances (bases et dossiers WebView2
 distincts, CDP 9222 et 9223) et un relais local :
 `waly-relais.exe 127.0.0.1:18787` (crate `waly-relais`).
+
+## La Garde, étape 4 (2026-10-06) — l'enclos, sur un vrai agent
+
+```powershell
+node e2e-garde-enclos.js "<exe de l'agent>" "<dossier à donner>" [dossier des captures]
+```
+
+Passe par l'interface : choisit l'agent sur le graphe, « Mettre dans
+l'enclos », essais, dossier donné puis repris, sortie de l'enclos, captures.
+Prérequis : l'agent tourne, le compte `WalyEnclos` existe (`waly enclos
+creer`). Plusieurs agents peuvent porter le même nom : le script ne clique
+que si le panneau montre le programme demandé. `WALY_E2E_SURVEILLER=1` ajoute
+la surveillance (Windows demande l'accord). Contrairement aux autres essais,
+celui-ci a besoin de la vraie base ou d'une base qui porte le secret de
+l'enclos (réglage `enclos_secret`, relisible par le même compte Windows).

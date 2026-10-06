@@ -38,7 +38,16 @@ windows-sys = { version = "0.59", features = [
     "Win32_UI_Controls_Dialogs",
     "Win32_UI_WindowsAndMessaging",
     "Win32_System_Threading",
+    # Decouverte des agents qui tournent (liste des processus).
+    "Win32_System_Diagnostics_ToolHelp",
     "Win32_System_Registry",
     # Coffre de cles des modeles exterieurs (DPAPI, crypt32 = DLL systeme).
     "Win32_Security_Cryptography",
+    # La Garde, etape 4 (l'enclos) : droits des dossiers, lancement sous un
+    # autre compte, regroupement des processus, choix d'un dossier.
+    "Win32_Security",
+    "Win32_Security_Authorization",
+    "Win32_System_JobObjects",
+    "Win32_System_Com",
+    "Win32_UI_Shell_Common",
 ] }
