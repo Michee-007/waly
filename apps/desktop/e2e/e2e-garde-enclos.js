@@ -55,11 +55,12 @@ const { ws, cdp, ev, invoke } = await connect();
 // La page Garde est-elle à l'écran ? Sinon on la rouvre (la démonstration du
 // premier lancement la referme en finissant).
 const garder = async () => {
-  const vue = await ev(`(function(){ const c=document.getElementById('gdcarte'); return !!c && c.offsetParent!==null; })()`);
+  // « À l'écran » se prouve : le point au centre du graphe lui appartient.
+  const vue = await ev(`(function(){ const c=document.getElementById('gdcarte'); if(!c) return false; const r=c.getBoundingClientRect(); if(r.width<50) return false; const e=document.elementFromPoint(r.left+r.width/2, r.top+20); return !!e && c.contains(e); })()`);
   if (!vue) { await ev(`document.getElementById('gardebtn').click()`); await sleep(1500); }
 };
 const capture = async (nom, garde) => {
-  if (garde) { await garder(); await choisir(); }
+  if (garde) { await garder(); if (!(await choisir())) { console.log('     capture abandonnée : agent non choisi'); return; } }
   await sleep(900);
   const r = await cdp('Page.captureScreenshot', { format: 'png' });
   const f = join(SORTIE, nom);
@@ -75,15 +76,43 @@ const agent = async () => (await invoke('core_garde')).agents.find((a) => a.exe.
 // CE programme. Choisir un noeud ne change rien.
 // Le programme que le panneau montre (chemin complet, porté par l'élément).
 const programme = () => ev(`(function(){ const e=document.querySelector('#gdcote [data-exe]'); return e ? e.dataset.exe : ''; })()`);
+// VÉCU 2026-10-06 : le script vérifiait le programme choisi, prenait une
+// capture (qui re-sélectionnait un noeud), puis cliquait « Mettre dans
+// l'enclos » sans revérifier : c'est Ollama qui y est parti. Depuis, tout clic
+// qui AGIT sur un agent vérifie le programme du panneau et clique dans la
+// même évaluation ; s'il ne correspond pas, rien n'est cliqué.
+const clicAgent = (sel) => ev(`(function(){
+  const e=document.querySelector('#gdcote [data-exe]');
+  const vu=e ? e.dataset.exe.replace(/\\s+/g,'').toLowerCase() : '';
+  if(vu!==${JSON.stringify(EXE.replace(/\s+/g, '').toLowerCase())}) return 'REFUS : le panneau montre '+(e ? e.dataset.exe : 'rien');
+  const b=document.querySelector(${JSON.stringify(sel)}); if(!b) return 'REFUS : bouton absent';
+  b.click(); return 'ok';
+})()`);
 const sansBlancs = (t) => (t || '').replace(/\s+/g, '').toLowerCase();
 const choisir = async () => {
   const n = await ev(`document.querySelectorAll('#gdcarte .noeud').length`);
   for (let i = 1; i < n; i++) {
     await ev(`(function(){ const n=document.querySelectorAll('#gdcarte .noeud')[${i}]; if(n) n.dispatchEvent(new MouseEvent('click',{bubbles:true})); return 1; })()`);
     await sleep(450);
-    if (sansBlancs(await programme()) === sansBlancs(EXE)) return true;
+    if (sansBlancs(await programme()) === sansBlancs(EXE)) {
+      await sleep(700); // la page se redessine toutes les 2,5 s : relire
+      if (sansBlancs(await programme()) === sansBlancs(EXE)) return true;
+    }
   }
   return false;
+};
+// Choisir puis agir, en réessayant : la page se redessine toutes les 2,5 s
+// et peut changer le panneau entre les deux. `clicAgent` ne clique jamais à
+// côté ; ici on recommence simplement jusqu'à tomber juste.
+const agir = async (sel) => {
+  let r = '';
+  for (let t = 0; t < 5; t++) {
+    await choisir();
+    r = await clicAgent(sel);
+    if (r === 'ok') return r;
+    await sleep(900);
+  }
+  return r;
 };
 const attendre = async (cond, maxS) => { for (let i = 0; i < maxS * 2; i++) { const v = await cond(); if (v) return v; await sleep(500); } return null; };
 
@@ -112,7 +141,9 @@ if (sansBlancs(await programme()) !== sansBlancs(EXE)) {
 await capture('garde-avant-enclos.png', true);
 
 // 2. Le mettre dans l'enclos, par le bouton et son dialogue.
-dire(await clic('#gdenclos'), 'bouton « Mettre dans l’enclos »');
+const mis = await agir('#gdenclos');
+dire(mis === 'ok', 'bouton « Mettre dans l’enclos »', mis);
+if (mis !== 'ok') { ws.close(); process.exit(1); }
 await sleep(400);
 console.log('     dialogue : ' + (await texte('#dlgtitle')) + ' | ' + (await texte('#dlgtext')));
 await clic('#dlgok');
@@ -129,9 +160,8 @@ dire(g.enclos.dossiers.every((d) => d.conforme === true), 'chaque réglage est c
 let r = await invoke('core_enclos_dossier', { chemin: DOSSIER, droit: 'ecriture' });
 dire(r.ok && r.conforme === true, 'un dossier donné en écriture, confirmé par la sonde', JSON.stringify(r));
 await sleep(3200); // la page se relit toutes les 2,5 s
-await choisir();
-await clic('#gdees');
-const voix = await attendre(() => texte('#gdvoix').then((t) => t && /Essais à l’instant|⚠/.test(t) ? t : null), 40);
+console.log('     refaire l’essai : ' + (await agir('#gdees')));
+const voix = await attendre(() => texte('#gdvoix').then((t) => t && /Essais à l’instant|⚠/.test(t) ? t : null), 90);
 dire(!!voix && !voix.includes('⚠'), 'bouton « Refaire l’essai »', voix);
 await choisir();
 await capture('garde.png', true);
@@ -140,19 +170,18 @@ await capture('garde.png', true);
 // reprend le dossier en cliquant sa ligne, comme le ferait l'utilisateur.
 g = await invoke('core_garde');
 const i = g.enclos.dossiers.findIndex((d) => d.chemin.toLowerCase() === DOSSIER.toLowerCase());
-await ev(`(function(){ const b=document.querySelector('#gdcote .gd-acces [data-i="${i}"]'); if(b) b.click(); return 1; })()`);
+await agir(`#gdcote .gd-acces [data-i="${i}"]`);
 const repris = await attendre(async () => !(await invoke('core_garde')).enclos.dossiers.some((d) => d.chemin.toLowerCase() === DOSSIER.toLowerCase()), 15);
 dire(!!repris, 'le dossier est repris en cliquant sa ligne', await texte('#gdvoix'));
 
 // 5. (facultatif) la surveillance de cet agent, dans le service installé :
 // Windows demande l'accord.
 if (SURVEILLER) {
-  await choisir();
-  await clic('#gdsurv');
-  const s = await attendre(async () => { const x = await agent(); return x && x.surveille ? x : null; }, 60);
+  console.log('     surveiller : ' + (await agir('#gdsurv')));
+  const s = await attendre(async () => { const x = await agent(); return x && x.surveille ? x : null; }, 150);
   dire(!!s, 'la surveillance de l’agent est allumée', await texte('#gdvoix'));
   if (s) {
-    await sleep(8000);
+    await sleep(12000);
     const x = await agent();
     console.log(`     vu en 8 s : ${x.vu_fichiers} fichier(s), ${x.vu_programmes} programme(s), ${x.vu_internet} adresse(s)`);
     await choisir(); await capture('garde-enclos-surveille.png', true);
@@ -161,8 +190,8 @@ if (SURVEILLER) {
 }
 
 // 6. Le sortir de l'enclos : il s'arrête.
-await choisir();
-await clic('#gdesor'); await sleep(400); await clic('#dlgok');
+const sortie = await agir('#gdesor');
+if (sortie === 'ok') { await sleep(400); await clic('#dlgok'); } else console.log('     ' + sortie);
 const sorti = await attendre(async () => { const x = await agent(); return !x || (!x.enclos && !x.en_cours) ? true : null; }, 20);
 dire(!!sorti, 'sorti de l’enclos et arrêté', await texte('#gdvoix'));
 

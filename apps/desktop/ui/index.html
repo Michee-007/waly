@@ -113,6 +113,7 @@
   .gd-carte .noeud{fill:var(--card);stroke:var(--ink);stroke-width:1.4;cursor:pointer}
   .gd-carte .noeud.choisi{stroke-width:3}
   .gd-carte .noeud.fige{stroke:var(--faint);stroke-dasharray:3 3}
+  .gd-carte .origine{font-size:10px}
   .gd-carte .cloture{fill:none;stroke:var(--ink);stroke-width:1.2;pointer-events:none}
   .gd-acces .e.doute{color:var(--warn);font-weight:600}
   .gd-acces button>span:first-child{min-width:0;overflow-wrap:anywhere}
@@ -148,9 +149,9 @@
   .gd-acces .e.non{color:var(--warn)}
   .gd-acts{display:flex;flex-wrap:wrap;gap:8px}
   .gd-note{font-size:12px;color:var(--faint)}
-  .gd-ev{display:grid;grid-template-columns:64px 70px minmax(0,1fr);gap:10px;align-items:baseline;padding:7px 4px;border-bottom:1px solid var(--line);font-size:13px}
+  .gd-ev{display:grid;grid-template-columns:64px 132px minmax(0,1fr);gap:10px;align-items:baseline;padding:7px 4px;border-bottom:1px solid var(--line);font-size:13px}
   .gd-ev time{color:var(--faint);font-variant-numeric:tabular-nums;font-size:11.5px}
-  .gd-ev .qui{font-weight:600;font-size:12px}
+  .gd-ev .qui{font-weight:600;font-size:12px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .gd-ev .quoi{min-width:0;overflow-wrap:anywhere}
   .gd-ev.refus .quoi,.gd-ev.porte .quoi{color:var(--warn)}
   .gd-ev.toi .quoi{color:var(--soft);font-style:italic}
@@ -1986,7 +1987,7 @@
       gdDire('Windows va demander ton accord…');
       try{ const r=await invoke('core_agent_unseal',{exe:x.exe}); gdDire(r.ok ? '<b>'+esc(x.nom)+'</b> peut de nouveau sortir sur internet.' : '⚠ '+esc(r.message), true); }catch(e){ gdDire('⚠ '+esc(e), true); }
     } else {
-      if(x.partage && !(await dialog({titre:'Couper internet à '+x.nom+' ?', texte:x.nom+' tourne sur un moteur partagé ('+x.exe+'). Lui couper internet le coupe aussi à '+(x.autres?x.autres+' autre(s) programme(s) en cours':'tout logiciel')+' qui utilise ce moteur.', ok:'Couper quand même', danger:true}))) return;
+      if(x.partage && !(await dialog({titre:'Couper internet à '+gdQui(x)+' ?', texte:x.nom+' tourne sur un moteur partagé ('+gdExeCourt(x.exe)+'). Lui couper internet le coupe aussi à '+(x.autres?x.autres+' autre(s) programme(s) en cours':'tout logiciel')+' qui utilise ce moteur.', ok:'Couper quand même', danger:true}))) return;
       gdDire('Windows va demander ton accord…');
       try{ const r=await invoke('core_agent_seal',{exe:x.exe}); gdDire(r.ok ? '<b>'+esc(x.nom)+'</b> ne peut plus sortir sur internet. Ses tentatives seront notées ici.' : '⚠ '+esc(r.message), !r.ok); }catch(e){ gdDire('⚠ '+esc(e), true); }
     }
@@ -1997,7 +1998,7 @@
     if(x.fige){
       try{ await invoke('core_agent_relancer',{nom:x.nom, exe:x.exe}); gdDire('<b>'+esc(x.nom)+'</b> tourne de nouveau.'); }catch(e){ gdDire('⚠ '+esc(e), true); }
     } else {
-      if(!(await dialog({titre:'Tout couper à '+x.nom+' ?', texte:x.nom+' sera figé : il ne lira plus rien, n’écrira plus rien et ne sortira plus, jusqu’à ce que tu le relances ici. Rien n’est perdu. Si tu fermes Waly, il repart tout seul.', ok:'Tout couper', danger:true}))) return;
+      if(!(await dialog({titre:'Tout couper à '+gdQui(x)+' ?', texte:gdLequel(x).trim()+' '+x.nom+' sera figé : il ne lira plus rien, n’écrira plus rien et ne sortira plus, jusqu’à ce que tu le relances ici. Rien n’est perdu. Si tu fermes Waly, il repart tout seul.', ok:'Tout couper', danger:true}))) return;
       try{ const r=await invoke('core_agent_figer',{nom:x.nom, exe:x.exe}); gdDire(r.ok ? '<b>'+esc(x.nom)+'</b> est figé. Il ne touche plus à rien sur cette machine.' : '⚠ '+esc(r.message), !r.ok); }catch(e){ gdDire('⚠ '+esc(e), true); }
     }
     await gdCharger(); gdDessiner();
@@ -2007,14 +2008,19 @@
   // dossiers que ceux que tu lui donnes. Chaque reglage est suivi d'un essai.
   const gdCourt=(c)=>{ const bref=(x)=>x.length>26 ? x.slice(0,24)+'…' : x, m=String(c).split('\\'); const fin=m.slice(-2).join('\\'); return m.length>3 ? m[0]+'\\…\\'+(fin.length>30 ? bref(m[m.length-1]) : fin) : m.map(bref).join('\\'); };
   const gdDroit={lecture:'lecture', ecriture:'écriture', coupe:'coupé'};
-  const gdProg=(exe)=>{ const m=String(exe).split('\\'), n=m.length, bref=(x)=>x.length>30 ? x.slice(0,28)+'…' : x;
-    return '<div class="gd-note" data-exe="'+esc(exe)+'" title="'+esc(exe)+'">'+esc(n>3 ? m[0]+'\\…\\'+bref(m[n-2])+'\\'+m[n-1] : exe)+'</div>'; };
+  const gdExeCourt=(exe)=>{ const m=String(exe).split('\\'), n=m.length, bref=(x)=>x.length>30 ? x.slice(0,28)+'…' : x; return n>3 ? m[0]+'\\…\\'+bref(m[n-2])+'\\'+m[n-1] : String(exe); };
+  const gdProg=(exe)=>'<div class="gd-note" data-exe="'+esc(exe)+'" title="'+esc(exe)+'">'+esc(gdExeCourt(exe))+'</div>';
+  // Plusieurs agents peuvent porter le meme nom (deux « Claude Code », l'un
+  // de WinGet, l'autre embarque par l'app Claude) : on dit alors d'ou il vient.
+  const gdHomonyme=(x)=> !!gd && gd.agents.filter(a=>a.nom===x.nom).length>1;
+  const gdQui=(x)=> x.nom+(gdHomonyme(x) && x.origine ? ' ('+x.origine+')' : '');
+  const gdLequel=(x)=>' Programme : '+gdExeCourt(x.exe)+'.';
   async function gdEnclosMettre(x){
     const e=gd.enclos||{};
-    const texte=x.nom+' sera fermé, puis relancé sous un compte Windows à part. Là, c’est Windows qui lui refuse ton dossier personnel (documents, bureau, clés), tant que tu ne lui donnes pas un dossier. Il repart sans ses réglages ni sa connexion : ils sont dans ton dossier personnel.'
+    const texte=gdLequel(x).trim()+' '+x.nom+' sera fermé, puis relancé sous un compte Windows à part. Là, c’est Windows qui lui refuse ton dossier personnel (documents, bureau, clés), tant que tu ne lui donnes pas un dossier. Il repart sans ses réglages ni sa connexion : ils sont dans ton dossier personnel.'
       +(x.partage?' Seul cet agent est relancé, pas les autres programmes du même moteur.':'')
       +(e.pret?'':' Windows va demander ton accord une fois, pour créer ce compte.');
-    if(!(await dialog({titre:'Mettre '+x.nom+' dans l’enclos ?', texte, ok:'Mettre dans l’enclos'}))) return;
+    if(!(await dialog({titre:'Mettre '+gdQui(x)+' dans l’enclos ?', texte, ok:'Mettre dans l’enclos'}))) return;
     gdDire(e.pret ? 'Relance de '+esc(x.nom)+' dans l’enclos…' : 'Windows va demander ton accord…');
     let r=null; try{ r=await invoke('core_enclos_mettre',{nom:x.nom, exe:x.exe}); }catch(err){ r={ok:false, message:String(err)}; }
     gdDire(r.ok ? '<b>'+esc(x.nom)+'</b> tourne dans l’enclos. Ton dossier personnel lui est fermé.'+((r.donnes||[]).length ? ' Pour qu’il démarre, Waly lui a donné en lecture : '+r.donnes.map(esc).join(', ')+'.' : '') : '⚠ '+esc(r.message), !r.ok);
@@ -2047,7 +2053,7 @@
     gdDire(!r.profil_invisible ? '⚠ L’enclos a pu lire ton dossier personnel. Quelque chose le lui ouvre : ne lui confie rien.' : faux.length ? '⚠ Ton dossier personnel lui est fermé, mais '+faux.length+' réglage(s) ne tien(nen)t pas : '+faux.map(d=>esc(d.chemin)).join(', ')+'.' : 'Essais à l’instant : ton dossier personnel lui est <b>fermé</b>, et chaque réglage tient.', !r.profil_invisible || faux.length>0);
   }
   async function gdEnclosArret(x, oublier){
-    if(oublier && !(await dialog({titre:'Sortir '+x.nom+' de l’enclos ?', texte:x.nom+' sera arrêté. Relancé par toi comme d’habitude, il retrouvera tous tes dossiers.', ok:'Sortir de l’enclos', danger:true}))) return;
+    if(oublier && !(await dialog({titre:'Sortir '+gdQui(x)+' de l’enclos ?', texte:gdLequel(x).trim()+' '+x.nom+' sera arrêté. Relancé par toi comme d’habitude, il retrouvera tous tes dossiers.', ok:'Sortir de l’enclos', danger:true}))) return;
     let r=null; try{ r = (!oublier && !x.en_cours) ? await invoke('core_enclos_relancer',{exe:x.exe}) : await invoke('core_enclos_arreter',{exe:x.exe, oublier:!!oublier}); }catch(err){ r={ok:false, message:String(err)}; }
     gdDire(!r.ok ? '⚠ '+esc(r.message) : oublier ? '<b>'+esc(x.nom)+'</b> est sorti de l’enclos et arrêté.' : x.en_cours ? '<b>'+esc(x.nom)+'</b> est arrêté ('+r.arretes+' processus). Il reste dans l’enclos.' : '<b>'+esc(x.nom)+'</b> est relancé dans l’enclos.', !r.ok);
     if(oublier) gdChoisi='Waly';
@@ -2057,7 +2063,7 @@
     const e=gd.enclos||{dossiers:[]};
     const etat=(d)=> gdDroit[d.droit]+(d.conforme===true?' · vérifié':d.conforme===false?' · NON tenu':'');
     const ferme = e.profil_invisible===true ? 'Dernier essai '+esc((e.profil_essaye||'').slice(11,16))+' : ton dossier personnel lui est fermé.' : e.profil_invisible===false ? '⚠ Au dernier essai, l’enclos a pu lire ton dossier personnel.' : 'Pas encore essayé.';
-    p.innerHTML='<div><div class="fine">Agent choisi</div><h3 class="serif">'+esc(x.nom)+'</h3></div>'+
+    p.innerHTML='<div><div class="fine">Agent choisi</div><h3 class="serif">'+esc(gdQui(x))+'</h3></div>'+
       '<span class="gd-pill '+(e.profil_invisible===false?'non':'ok')+'">Dans l’enclos'+(x.en_cours?'':' · arrêté')+'</span>'+
       gdProg(x.exe)+
       '<div class="gd-note">Il tourne sous un compte Windows à part ('+esc(e.compte||'')+'). '+ferme+'</div>'+
@@ -2128,7 +2134,7 @@
       gdRegard(voulus.length ? 'agents' : 'rien', voulus);
     };
     if(x.enclos){ gdPanneauEnclos(p, x); $('gdseal').onclick=()=>gdSceller(x); if($('gdsurv')) $('gdsurv').onclick=surveiller; return; }
-    p.innerHTML='<div><div class="fine">Agent choisi</div><h3 class="serif">'+esc(x.nom)+'</h3></div>'+
+    p.innerHTML='<div><div class="fine">Agent choisi</div><h3 class="serif">'+esc(gdQui(x))+'</h3></div>'+
       '<span class="gd-pill '+(x.fige||x.scelle?'ok':'non')+'">'+(x.fige?'Figé : ne touche plus à rien':x.scelle?'Internet coupé':'Peut sortir sur internet')+(x.en_cours?'':' · arrêté')+'</span>'+
       gdProg(x.exe)+
       (x.partage?'<div class="gd-note warn">Moteur partagé : lui couper internet le coupe aussi à '+(x.autres?x.autres+' autre(s) programme(s) en cours':'tout logiciel')+' qui l’utilise.</div>':'')+
@@ -2149,7 +2155,7 @@
     const c=$('gdcarte'); if(!c || !gd) return;
     gdSorties().then(sorties=>{
       const autres=gd.agents.slice(0,4), ags=[{nom:'Waly', id:'Waly'}].concat(autres.map(a=>({nom:a.nom, id:a.nom+'|'+a.exe, x:a})));
-      const H=Math.max(360, 60+Math.max(ags.length*76, gd.acces.length*62));
+      const H=Math.max(360, 60+Math.max(ags.length*84, gd.acces.length*62));
       // Le dessin suit la largeur reelle : le texte garde sa taille.
       const W=Math.max(520, Math.round(c.clientWidth||720));
       c.setAttribute('viewBox','0 0 '+W+' '+H); c.textContent=''; gdPos={};
@@ -2197,7 +2203,10 @@
         const n=svgEl('circle',{class:'noeud'+(ag.id===gdChoisi?' choisi':'')+(ag.x&&ag.x.fige?' fige':''),cx:AX,cy:ay,r:30,tabindex:0,role:'button','aria-label':'Choisir '+ag.nom});
         const choix=()=>{ gdChoisi=ag.id; gdDessiner(); gdFil(); };
         n.addEventListener('click',choix); n.addEventListener('keydown',e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); choix(); } });
-        gN.append(n, svgEl('text',{x:AX,y:ay+4,'text-anchor':'middle'}, ag.nom.length>9?ag.nom.slice(0,8)+'…':ag.nom));
+        const court=(t)=>t.length>9?t.slice(0,8)+'…':t, mots=ag.nom.split(' ');
+        if(ag.nom.length>9 && mots.length===2) gN.append(n, svgEl('text',{x:AX,y:ay-2,'text-anchor':'middle'},court(mots[0])), svgEl('text',{x:AX,y:ay+12,'text-anchor':'middle'},court(mots[1])));
+        else gN.append(n, svgEl('text',{x:AX,y:ay+4,'text-anchor':'middle'}, court(ag.nom)));
+        if(ag.x && ag.x.origine && gdHomonyme(ag.x)) gN.append(svgEl('text',{x:AX,y:ay+46,'text-anchor':'middle',class:'pale origine'}, ag.x.origine));
       });
       gd.acces.forEach(a=>{ const r=gdPos['r:'+a.cle]; gN.append(svgEl('rect',{class:'res',x:r.x,y:r.y-16,width:100,height:32,rx:10}), svgEl('text',{x:r.x+50,y:r.y+4,'text-anchor':'middle'},a.nom)); });
       c.append(gI,gL,gN,svgEl('line',{class:'mur',x1:MUR,y1:12,x2:MUR,y2:H-12}),svgEl('text',{x:MUR,y:9,'text-anchor':'middle',class:'pale'},'Windows'),

@@ -54,6 +54,29 @@ fichiers, lancements de programmes, connexions.
   retrouvés, en portée « agents » comme en portée « tout » ; après tri, 18
   lignes pour un PowerShell qui démarre, contre 560 noms bruts.
 
+## Essai sur le service installé (2026-10-06, nuit)
+
+`apps/desktop/e2e/e2e-garde-surveillance.js`, sur la vraie app et le service
+installé (SYSTEM) : « Surveiller toute la machine » allumé par le bouton
+(accord Windows), un PowerShell fait quatre gestes, les quatre arrivent dans
+le fil de la Garde (lecture de `README.md`, création et écriture d'un
+fichier, lancement de `ping`, connexion à `1.1.1.1:443`), au milieu de ceux
+d'une douzaine d'autres programmes ; extinction par le bouton, sans accord.
+
+Deux défauts trouvés par cet essai et corrigés :
+
+- **« Surveiller » échouait depuis l'app, jamais depuis une console.** Le
+  programme élevé du service ne réessayait pas quand le canal était occupé,
+  et la Garde ouverte l'interroge en continu. Il réessaie maintenant, comme
+  l'app. Le même défaut pouvait faire échouer « Couper internet ».
+- **Un geste refait dans la journée n'apparaissait plus.** Sa ligne n'était
+  que redatée ; le fil, lu par numéro, la laissait enfouie sous les lignes
+  plus récentes. Elle est maintenant retirée puis réinscrite.
+
+Vu aussi : en portée « tout », le fil se remplit vite (plus de mille gestes
+en quelques minutes sur une machine de développeur) et montre des chemins du
+profil. Il reste local ; une capture de ce fil ne se publie pas telle quelle.
+
 ## Conséquences
 
 - Le service doit être **réinstallé** pour recevoir le regard.

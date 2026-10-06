@@ -15,7 +15,7 @@
 /// Sel de reroll SAC (piège 3) : un nouveau build peut se faire bloquer par
 /// Smart App Control (verdict par binaire, imprévisible). Incrémenter change le
 /// hash → nouveau verdict. (Le service final sera signé.)
-const SAC_REROLL: u32 = 10;
+const SAC_REROLL: u32 = 11;
 
 #[cfg(not(windows))]
 fn main() {
@@ -142,11 +142,23 @@ fn main() {
 #[cfg(windows)]
 fn probe(json: &str) -> Result<String, String> {
     use std::io::{Read, Write};
-    let mut f = std::fs::OpenOptions::new()
-        .read(true)
-        .write(true)
-        .open(waly_seal::ipc::PIPE_NAME)
-        .map_err(|e| format!("pipe: {e}"))?;
+    // Le canal sert un client a la fois, et l'app l'interroge en continu
+    // quand la Garde est ouverte : « occupe » n'est pas un echec, on reessaie
+    // (vecu 2026-10-06 : « Surveiller » echouait depuis l'app, jamais depuis
+    // une console). Introuvable (2) = service absent : inutile d'insister.
+    let mut ouvert = None;
+    for essai in 0..80 {
+        match std::fs::OpenOptions::new().read(true).write(true).open(waly_seal::ipc::PIPE_NAME) {
+            Ok(h) => {
+                ouvert = Some(h);
+                break;
+            }
+            Err(e) if e.raw_os_error() == Some(2) => return Err("service scelleur absent".into()),
+            Err(e) if essai == 79 => return Err(format!("pipe: {e}")),
+            Err(_) => std::thread::sleep(std::time::Duration::from_millis(50)),
+        }
+    }
+    let mut f = ouvert.ok_or("pipe indisponible")?;
     f.write_all(json.as_bytes()).map_err(|e| e.to_string())?;
     f.write_all(b"\n").map_err(|e| e.to_string())?;
     f.flush().ok();

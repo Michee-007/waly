@@ -260,8 +260,10 @@ tous moteurs). Les accélérateurs gagnent sur le PRÉFILL (NPU : ×16 mesuré).
    finit quand même et laisse l'ancien service. La relancer seule :
    `%LOCALAPPDATA%\Programs\Waly\waly-seal-svc.exe setup` (élevé).
    Essai piloté de la Garde : `apps/desktop/e2e/e2e-garde-enclos.js` (plusieurs
-   agents portent le même nom, dont la session Claude en cours : toujours
-   vérifier le PROGRAMME affiché avant de cliquer).
+   agents portent le même nom, dont la session Claude en cours : vérifier le
+   PROGRAMME affiché et cliquer DANS LA MÊME évaluation — vécu le soir même :
+   une capture intercalée entre la vérification et le clic a envoyé l'Ollama
+   de Michée dans l'enclos). Captures du README : `e2e/captures-*.js`.
 
 ## Commandes
 - Itération rapide (WSL) : `cargo check --workspace`, `cargo test` (waly-voice : 20 tests).

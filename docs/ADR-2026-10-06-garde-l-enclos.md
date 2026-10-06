@@ -135,10 +135,25 @@ Observé : la relance dans l'enclos a pris de quelques secondes à plus de
 45 s selon la charge de la machine (ouverture de session secondaire). Rien
 ne l'indique à l'écran hormis « Relance… » : à améliorer.
 
+**Un incident pendant ces essais.** Une version du script a mis Ollama dans
+l'enclos à la place de l'agent d'essai : la vérification du programme et le
+clic étaient séparés par une capture qui re-sélectionnait un nœud. Ollama a
+été remis sous le compte de l'utilisateur dans les deux minutes ; le script
+vérifie désormais et clique dans le même geste. Ce que l'incident dit du
+produit : quand plusieurs agents portent le même nom (trois « Claude » sur la
+machine de référence), le dialogue « Mettre X dans l'enclos ? » doit nommer le
+programme, pas seulement l'agent. **Fait le soir même** (demande de Michée :
+« il peut y avoir différents agents qui viennent tous de Claude ») :
+`agents_machine` distingue « Claude » (l'app) de « Claude Code », et donne
+l'**origine** de chaque programme (WinGet, app Claude, Microsoft Store, npm…) ;
+la Garde affiche cette origine sous le nœud et dans le titre dès que deux
+agents portent le même nom, et chaque dialogue qui agit écrit le programme.
+
 ## Non vérifié
 
-- **La surveillance dans le service installé** : la demande d'accord de
-  Windows n'a pas été validée pendant l'essai.
+- Voir, par la surveillance, ce qu'un agent de l'enclos ouvre réellement : la
+  surveillance s'allume sur lui depuis la Garde, mais l'agent d'essai, au
+  repos, n'a rien touché pendant l'écoute.
 - Un agent Ollama, un agent à fenêtre, un agent Node ou Python dans l'enclos.
   Un agent qui dépend de variables d'environnement de l'utilisateur ne les
   retrouve pas sous l'autre compte.

@@ -4511,6 +4511,7 @@ fn agents_trouves(conn: &rusqlite::Connection) -> Vec<serde_json::Value> {
             }
         }
         lignes.push(serde_json::json!({
+            "origine": waly_core::agents_machine::origine(&exe),
             "nom": nom, "exe": exe, "partage": partage, "autres": autres,
             "en_cours": en_cours, "scelle": scelle, "bloquees": bloquees, "derniere": derniere, "fige": fige,
             "enclos": enclos, "hors_enclos": hors_enclos,

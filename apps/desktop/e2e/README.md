@@ -54,3 +54,21 @@ que si le panneau montre le programme demandé. `WALY_E2E_SURVEILLER=1` ajoute
 la surveillance (Windows demande l'accord). Contrairement aux autres essais,
 celui-ci a besoin de la vraie base ou d'une base qui porte le secret de
 l'enclos (réglage `enclos_secret`, relisible par le même compte Windows).
+
+## Refaire les captures du README (2026-10-06)
+
+Sur la vraie app, base de démonstration vide (`WALY_DB`), fenêtre ramenée à
+1500 × 1000 par CDP :
+
+```powershell
+node captures-readme.js <dossier>          # reflexion.png (un vrai tour du modèle local) et modeles.png
+node captures-partage.js <fichier.png>     # deux instances (9222 et 9223) + waly-relais 127.0.0.1:18787
+node captures-appel-video.js <fichier.png> # ALLUME caméra et micro ~20 s ; il faut quelqu'un devant
+node capturer.js <fichier.png> [port] [expression JS] [attente ms]   # une capture, telle quelle
+```
+
+`garde.png` et `preuve.png` viennent de `e2e-garde-enclos.js`.
+
+⚠ Vécu : un script qui AGIT sur un agent doit vérifier le programme affiché
+et cliquer dans la même évaluation (`clicAgent`). Plusieurs agents portent le
+même nom, et la page se redessine toutes les 2,5 s.

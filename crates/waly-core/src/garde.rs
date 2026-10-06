@@ -178,19 +178,18 @@ pub fn dire_observation(genre: &str, objet: &str) -> (&'static str, String) {
 /// Inscrit le geste d'un AUTRE programme. Le même geste répété dans la
 /// journée ne fait qu'une ligne, remontée en tête.
 pub fn noter_agent(conn: &Connection, agent: &str, ressource: &str, detail: &str) {
-    let maj = conn
-        .execute(
-            "UPDATE registre SET at = datetime('now','localtime')
-             WHERE agent = ?1 AND detail = ?2 AND date(at) = date('now','localtime')",
-            rusqlite::params![agent, detail],
-        )
-        .unwrap_or(0);
-    if maj == 0 {
-        let _ = conn.execute(
-            "INSERT INTO registre (agent, ressource, detail) VALUES (?1, ?2, ?3)",
-            rusqlite::params![agent, ressource, detail],
-        );
-    }
+    // Vécu 2026-10-06 : on ne changeait que la date de la ligne. Le fil, lu
+    // par numéro, la laissait enfouie sous des centaines de lignes plus
+    // récentes : un geste refait n'apparaissait plus. La ligne du jour est
+    // donc retirée puis réinscrite : elle reprend la tête pour de bon.
+    let _ = conn.execute(
+        "DELETE FROM registre WHERE agent = ?1 AND detail = ?2 AND date(at) = date('now','localtime')",
+        rusqlite::params![agent, detail],
+    );
+    let _ = conn.execute(
+        "INSERT INTO registre (agent, ressource, detail) VALUES (?1, ?2, ?3)",
+        rusqlite::params![agent, ressource, detail],
+    );
 }
 
 /// Combien de gestes de cet agent aujourd'hui, par ressource.
@@ -270,6 +269,21 @@ mod tests {
         .unwrap();
         migrer(&c).unwrap();
         c
+    }
+
+    #[test]
+    fn un_geste_refait_remonte_en_tete_du_fil_meme_sous_des_centaines_de_lignes() {
+        let c = base();
+        noter_agent(&c, "powershell.exe", "fichiers", r"a ouvert C:\waly\README.md");
+        for i in 0..400 {
+            noter_agent(&c, "chrome.exe", "fichiers", &format!("a écrit C:/cache/{i}"));
+        }
+        assert!(!lignes(&c, 300).unwrap().iter().any(|l| l.detail.contains("README")), "enfoui : hors des 300 dernières");
+        // Le même geste, refait : une seule ligne, et en tête.
+        noter_agent(&c, "powershell.exe", "fichiers", r"a ouvert C:\waly\README.md");
+        let l = lignes(&c, 300).unwrap();
+        assert!(l[0].detail.contains("README"), "{}", l[0].detail);
+        assert_eq!(vus_par(&c, "powershell.exe", "fichiers"), 1, "toujours une seule ligne pour ce geste");
     }
 
     #[test]

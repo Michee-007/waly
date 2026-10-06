@@ -52,7 +52,11 @@ const CATALOGUE: &[(&str, &[&str], &[&str])] = &[
     ("Ollama", &["ollama.exe"], &[]),
     ("LM Studio", &["lm studio", "lmstudio", "lms.exe"], &[]),
     ("Jan", &["jan.exe"], &[]),
-    ("Claude", &["claude"], &["claude-code", "@anthropic-ai"]),
+    // « Claude Code » (l'agent de code) et « Claude » (l'app de bureau)
+    // portent le même nom de programme : `reconnaitre` les départage par le
+    // chemin. Sur un moteur partagé, la ligne de commande désigne Claude Code.
+    ("Claude Code", &[], &["claude-code", "@anthropic-ai"]),
+    ("Claude", &["claude"], &[]),
     ("Codex", &["codex"], &["@openai/codex"]),
     ("Gemini CLI", &[], &["@google/gemini-cli", "gemini-cli"]),
     ("Aider", &["aider"], &["aider"]),
@@ -80,6 +84,10 @@ pub fn reconnaitre(exe: &str, ligne: &str) -> Option<&'static str> {
     let b = base(exe);
     for (nom, noms, _) in CATALOGUE {
         if noms.iter().any(|m| b.contains(m)) {
+            let chemin = exe.to_ascii_lowercase();
+            if *nom == "Claude" && (chemin.contains("claude-code") || chemin.contains("claudecode")) {
+                return Some("Claude Code");
+            }
             return Some(nom);
         }
     }
@@ -93,6 +101,32 @@ pub fn reconnaitre(exe: &str, ligne: &str) -> Option<&'static str> {
         }
     }
     None
+}
+
+/// D'où vient ce programme, en un ou deux mots : ce qui distingue deux
+/// agents du même nom (plusieurs « Claude Code » peuvent tourner à la fois :
+/// celui de WinGet, celui que l'app de bureau embarque, celui de npm). PUR.
+pub fn origine(exe: &str) -> String {
+    let c = exe.replace('/', "\\").to_ascii_lowercase();
+    for (marque, nom) in [
+        ("\\winget\\", "WinGet"),
+        ("\\claude\\claude-code\\", "app Claude"),
+        ("\\windowsapps\\", "Microsoft Store"),
+        ("\\node_modules\\", "npm"),
+        ("\\npm\\", "npm"),
+        ("\\scoop\\", "Scoop"),
+        ("\\chocolatey\\", "Chocolatey"),
+        ("\\.local\\bin\\", "installation locale"),
+        ("\\program files", "Program Files"),
+    ] {
+        if c.contains(marque) {
+            return nom.to_string();
+        }
+    }
+    // À défaut : le dossier qui contient le programme.
+    let mut morceaux = exe.rsplit(['\\', '/']);
+    morceaux.next();
+    morceaux.next().unwrap_or("").to_string()
 }
 
 /// Regroupe les processus reconnus par (agent, programme) et compte, pour
@@ -304,6 +338,10 @@ mod tests {
         assert_eq!(reconnaitre(r"C:\Hermes\hermes.exe", ""), Some("Hermes"));
         assert_eq!(reconnaitre(r"C:\apps\OpenClaw\OpenClaw.exe", ""), Some("OpenClaw"));
         assert_eq!(reconnaitre(r"C:\x\claude.exe", ""), Some("Claude"));
+        // Même nom de programme, deux agents : le chemin les départage.
+        assert_eq!(reconnaitre(r"C:\Program Files\WindowsApps\Claude_2.1_x64\app\claude.exe", ""), Some("Claude"));
+        assert_eq!(reconnaitre(r"C:\Users\x\AppData\Roaming\Claude\claude-code\2.1.288\ab12\claude.exe", ""), Some("Claude Code"));
+        assert_eq!(reconnaitre(r"C:\Users\x\AppData\Local\Microsoft\WinGet\Packages\Anthropic.ClaudeCode_x\claude.exe", ""), Some("Claude Code"));
         // « ollama app.exe » est la barre d'icônes, pas le serveur qui sort.
         assert_eq!(reconnaitre(r"C:\x\ollama app.exe", ""), None);
     }
@@ -328,6 +366,7 @@ mod tests {
     fn waly_n_est_pas_un_autre_agent() {
         assert_eq!(reconnaitre(r"C:\waly\bin\waly-voice.exe", ""), None);
         assert_eq!(reconnaitre(r"C:\x\Waly.exe", "claude"), None);
+        assert_eq!(reconnaitre(r"C:\Program Files\nodejs\node.exe", r"node C:\npm\node_modules\@anthropic-ai\claude-code\cli.js"), Some("Claude Code"));
         assert_eq!(reconnaitre(r"C:\waly\engines\flm\flm.exe", ""), None);
     }
 
@@ -395,6 +434,20 @@ mod tests {
         assert!(debut.elapsed() < std::time::Duration::from_secs(8));
         // On ne se fige jamais soi-même.
         assert_eq!(figer(&[std::process::id()]), 0);
+    }
+
+    #[test]
+    fn l_origine_distingue_deux_agents_du_meme_nom() {
+        assert_eq!(origine(r"C:\Users\x\AppData\Local\Microsoft\WinGet\Packages\Anthropic.ClaudeCode_x\claude.exe"), "WinGet");
+        assert_eq!(origine(r"C:\Users\x\AppData\Roaming\Claude\claude-code\2.1.288\ab12\claude.exe"), "app Claude");
+        // Le Claude Code que l'app du Store embarque vit sous Packages\…\Roaming\Claude\claude-code.
+        assert_eq!(origine(r"C:\Users\x\AppData\Local\Packages\Claude_p\LocalCache\Roaming\Claude\claude-code\2\a\claude.exe"), "app Claude");
+        assert_eq!(origine(r"C:\Program Files\WindowsApps\Claude_2.1_x64\app\claude.exe"), "Microsoft Store");
+        assert_eq!(origine(r"C:\Users\x\AppData\Roaming\npm\node_modules\openclaw\dist\index.js"), "npm");
+        assert_eq!(origine(r"C:\Program Files\nodejs\node.exe"), "Program Files");
+        assert_eq!(origine(r"C:\Users\x\AppData\Local\Programs\Ollama\ollama.exe"), "Ollama");
+        assert_eq!(origine("D:/outils/agent/agent.exe"), "agent");
+        assert_eq!(origine("agent.exe"), "");
     }
 
     #[test]

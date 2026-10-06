@@ -17,8 +17,9 @@ de l'afficher.
 ![La Garde : le graphe relie Waly et les autres agents de la machine à ce qu'ils touchent ; un Claude Code est dans l'enclos, ses dossiers sont listés avec le résultat de leur essai](docs/images/garde.png)
 
 *La Garde, capture réelle (base vide, vrais agents de la machine de
-référence : trois Claude et un Ollama). Chaque lien de Waly se coupe d'un
-clic. Le Claude Code choisi est dans l'enclos : un compte Windows à part,
+référence : l'app Claude, deux Claude Code et un Ollama ; quand deux agents
+portent le même nom, la Garde dit d'où vient chacun). Chaque lien de Waly se
+coupe d'un clic. Le Claude Code choisi est dans l'enclos : un compte Windows à part,
 auquel Windows refuse tes dossiers tant que tu ne les donnes pas. Chaque
 réglage est suivi d'un essai réel, et c'est son résultat qui est affiché.*
 

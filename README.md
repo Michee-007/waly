@@ -17,8 +17,9 @@ network seal that it proves with a real attempt before it displays it.
 ![The Guard: a graph links Waly and the other agents on the machine to what they touch; one Claude Code runs in the enclosure, its folders listed with the result of their test](docs/images/garde.png)
 
 *The Guard ("la Garde"), a real capture (empty database, the real agents of
-the reference machine: three Claude and one Ollama). Each of Waly's links is
-cut with one click. The selected Claude Code runs in the enclosure: a
+the reference machine: the Claude app, two Claude Code and one Ollama; when
+two agents share a name, the Guard says where each one comes from). Each of
+Waly's links is cut with one click. The selected Claude Code runs in the enclosure: a
 separate Windows account that Windows keeps out of your folders until you
 hand one over. Every setting is followed by a real attempt, and it is the
 result of that attempt that is displayed.*

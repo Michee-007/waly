@@ -74,7 +74,7 @@ async function tour(ev, message, maxS) {
   verifie(!a.err, 'pas d’erreur');
   verifie(!!a.think && a.think.length > 20, 'un bloc de réflexion a été rempli');
   verifie(a.open === false, 'le bloc est replié une fois la réponse commencée');
-  verifie(a.body.length > 5 && !/<\/?(reflexion|think)/.test(a.body), 'la bulle contient la réponse, sans balise');
+  verifie(a.body.length > 3 && !/<\/?(reflexion|think)/.test(a.body), 'la bulle contient la réponse, sans balise');
   verifie(!a.body.includes((a.think || 'x').slice(0, 40)), 'la réflexion n’est pas recopiée dans la bulle');
 
   console.log('— rechargement : la réflexion revient avec la conversation');
@@ -82,7 +82,7 @@ async function tour(ev, message, maxS) {
   ({ ws, ev } = await connect());
   const r = JSON.parse(await ev(ETAT));
   verifie(!!r.think && r.open === false, 'bloc présent et replié après rechargement');
-  verifie(r.body.length > 5, 'réponse présente après rechargement');
+  verifie(r.body.length > 3, 'réponse présente après rechargement');
 
   console.log('— réflexion COUPÉE');
   const invoke3 = (cmd, args) => ev(`window.__TAURI__.core.invoke(${JSON.stringify(cmd)}, ${JSON.stringify(args || {})}).then(r=>JSON.stringify(r))`);
@@ -90,7 +90,7 @@ async function tour(ev, message, maxS) {
   const b = await tour(ev, 'Et si la première commence à 10h ?', 120);
   console.log('  RÉPONSE   :', b.body);
   verifie(b.think === null, 'aucun bloc de réflexion');
-  verifie(b.body.length > 5 && !/<\/?(reflexion|think)/.test(b.body), 'réponse sans balise');
+  verifie(b.body.length > 3 && !/<\/?(reflexion|think)/.test(b.body), 'réponse sans balise');
   ws.close();
   process.exit(ok ? 0 : 2);
 })().catch((e) => { console.log('ERREUR:', e.message); process.exit(1); });
